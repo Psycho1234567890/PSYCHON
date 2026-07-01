@@ -3,7 +3,7 @@ from flask_cors import CORS
 from model_loader import get_response
 
 app = Flask(__name__)
-CORS(app)   # allows requests from your Vercel frontend
+CORS(app)
 
 @app.route("/health", methods=["GET"])
 def health():
