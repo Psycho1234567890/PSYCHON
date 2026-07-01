@@ -1,0 +1,18 @@
+# Virtual environments
+venv/
+venv311/
+venv310/
+.venv/
+
+# Large model files (GloVe)
+backend/artifacts/glove.6B.100d.txt
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs and databases
+*.log
+*.db
+.DS_Store
