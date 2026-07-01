@@ -1,1147 +1,1296 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PSYCHON — Synaptic AI Assistant</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg-deep:#0a0d1f;
-    --bg-deep2:#160b2e;
-    --violet:#8b5cf6;
-    --violet-soft:#a78bfa;
-    --cyan:#22d3ee;
-    --pink:#f472b6;
-    --text:#eef1fb;
-    --muted:#9aa3c7;
-    --glass:rgba(255,255,255,0.055);
-    --glass-border:rgba(255,255,255,0.10);
-    --radius:18px;
-  }
-  *{box-sizing:border-box;}
-  html,body{height:100%;}
-  body{
-    margin:0;
-    font-family:'Inter',sans-serif;
-    color:var(--text);
-    background:
-      radial-gradient(circle at 15% 20%, rgba(139,92,246,0.20), transparent 45%),
-      radial-gradient(circle at 85% 75%, rgba(34,211,238,0.16), transparent 45%),
-      radial-gradient(circle at 50% 100%, rgba(244,114,182,0.10), transparent 50%),
-      linear-gradient(160deg, var(--bg-deep), var(--bg-deep2));
-    min-height:100vh;
-    overflow:hidden;
-    position:relative;
-  }
-  @media (prefers-reduced-motion: reduce){
-    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
-  }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>PSYCHON — Signal Console</title>
+    <!-- Markdown & Highlight -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ==========================================================
+           TOKENS — instrument-panel palette. Two accents only:
+           phosphor amber (signal / self) and signal teal (system).
+           ========================================================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --void: #07090c;
+            --void-2: #0c1015;
+            --panel: #10141a;
+            --panel-hi: #151a21;
+            --line: rgba(255, 255, 255, 0.09);
+            --line-soft: rgba(255, 255, 255, 0.05);
 
-  /* ---------- animated neural canvas background ---------- */
-  #neuralCanvas{
-    position:fixed; inset:0; width:100%; height:100%;
-    z-index:0; opacity:0.55; pointer-events:none;
-  }
+            --phosphor: #ffb545;
+            --phosphor-dim: rgba(255, 181, 69, 0.32);
+            --teal: #5be0e6;
+            --teal-dim: rgba(91, 224, 230, 0.28);
+            --alert: #ff6b6b;
 
-  /* ---------- layout shell ---------- */
-  .shell{
-    position:relative; z-index:1;
-    height:100vh; width:100%;
-    display:flex; align-items:center; justify-content:center;
-    padding:24px;
-  }
-  .console{
-    width:100%; max-width:1180px; height:min(860px, 92vh);
-    display:grid; grid-template-columns:300px 1fr; grid-template-rows:100%;
-    background:var(--glass);
-    border:1px solid var(--glass-border);
-    border-radius:24px;
-    backdrop-filter:blur(22px) saturate(140%);
-    -webkit-backdrop-filter:blur(22px) saturate(140%);
-    box-shadow:0 30px 90px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
-    overflow:hidden;
-  }
+            --text: #e9edf2;
+            --muted: #7c8794;
+            --muted-2: #4d5560;
 
-  /* ---------- brand rail ---------- */
-  .rail{
-    padding:30px 26px;
-    border-right:1px solid var(--glass-border);
-    background:linear-gradient(180deg, rgba(139,92,246,0.10), rgba(34,211,238,0.04));
-    display:flex; flex-direction:column;
-    gap:26px;
-    min-height:0; /* allow this grid item to shrink so its children can scroll */
-    overflow:hidden;
-  }
-  .topic-section{
-    display:flex; flex-direction:column;
-    flex:1; min-height:0; /* let this section fill remaining rail space */
-  }
-  .brand{ display:flex; align-items:center; gap:12px; }
-  .brand-mark{
-    width:46px; height:46px; border-radius:14px;
-    background:conic-gradient(from 180deg, var(--violet), var(--cyan), var(--pink), var(--violet));
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
-    animation:spin 8s linear infinite;
-    box-shadow:0 0 26px rgba(139,92,246,0.55);
-  }
-  .brand-mark::after{
-    content:"";
-    position:absolute; inset:4px;
-    border-radius:10px;
-    background:var(--bg-deep);
-  }
-  .brand-mark svg{ position:relative; z-index:1; width:22px; height:22px; }
-  @keyframes spin{ to{ transform:rotate(360deg); } }
-  .brand h1{
-    font-family:'Space Grotesk',sans-serif;
-    font-size:19px; margin:0; letter-spacing:0.5px;
-    background:linear-gradient(90deg,#fff,var(--violet-soft));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  .brand span{ display:block; font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px;}
+            --radius: 10px;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --drawer-width: 280px;
+        }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: var(--void);
+            background-image:
+                radial-gradient(ellipse 900px 500px at 8% 0%, rgba(91, 224, 230, 0.07), transparent 60%),
+                radial-gradient(ellipse 900px 600px at 95% 100%, rgba(255, 181, 69, 0.06), transparent 60%);
+            min-height: 100dvh;
+            position: relative;
+        }
+        /* faint graph-paper grid — the instrument's "bench" */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 34px),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 34px);
+            mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 40%, transparent 90%);
+        }
 
-  .status-pill{
-    display:inline-flex; align-items:center; gap:8px;
-    font-size:12px; color:var(--muted);
-    padding:8px 12px; border-radius:999px;
-    background:rgba(255,255,255,0.04); border:1px solid var(--glass-border);
-    width:fit-content;
-  }
-  .dot-live{ width:8px; height:8px; border-radius:50%; background:#34d399; box-shadow:0 0 10px #34d399; animation:pulse 1.6s infinite; }
-  @keyframes pulse{ 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.8);} }
+        #neuralCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+            pointer-events: none;
+        }
 
-  .rail-section-title{
-    font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted);
-    margin:4px 0 2px;
-  }
-  .topic-grid{ display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding-right:4px; flex:1; min-height:0; }
-  .topic-grid::-webkit-scrollbar{ width:5px; }
-  .topic-grid::-webkit-scrollbar-thumb{ background:rgba(139,92,246,0.35); border-radius:10px; }
-  .topic-btn{
-    text-align:left;
-    font-family:'Inter',sans-serif;
-    font-size:13px; color:var(--text);
-    background:rgba(255,255,255,0.03);
-    border:1px solid var(--glass-border);
-    padding:10px 12px; border-radius:12px;
-    cursor:pointer; transition:all .2s ease;
-    display:flex; align-items:center; gap:8px;
-  }
-  .topic-btn:hover{
-    background:linear-gradient(90deg, rgba(139,92,246,0.18), rgba(34,211,238,0.10));
-    border-color:rgba(139,92,246,0.5);
-    transform:translateX(3px);
-  }
-  .topic-btn .emoji{ font-size:14px; }
+        .shell {
+            position: relative;
+            z-index: 1;
+            height: 100dvh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+        }
+        @media (max-width: 820px) { .shell { padding: 0; } }
 
-  .rail-footer{
-    margin-top:auto; display:flex; gap:8px;
-  }
-  .icon-btn{
-    flex:1;
-    display:flex; align-items:center; justify-content:center; gap:6px;
-    padding:10px; border-radius:12px;
-    background:rgba(255,255,255,0.04); border:1px solid var(--glass-border);
-    color:var(--muted); font-size:12px; cursor:pointer;
-    transition:all .2s ease;
-  }
-  .icon-btn:hover{ color:var(--text); background:rgba(255,255,255,0.09); }
+        .console {
+            width: 100%;
+            max-width: 1180px;
+            height: min(860px, 92dvh);
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 100%;
+            background: linear-gradient(180deg, rgba(16, 20, 26, 0.88), rgba(12, 16, 21, 0.92));
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(18px) saturate(120%);
+            -webkit-backdrop-filter: blur(18px) saturate(120%);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            overflow: hidden;
+            position: relative;
+        }
+        @media (max-width: 820px) {
+            .console { grid-template-columns: 1fr; border-radius: 0; height: 100dvh; max-height: 100dvh; }
+        }
 
-  /* ---------- chat column ---------- */
-  .chat-col{ display:flex; flex-direction:column; min-width:0; min-height:0; }
-  .chat-header{
-    padding:20px 26px;
-    border-bottom:1px solid var(--glass-border);
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .chat-header .who{ display:flex; align-items:center; gap:12px; }
-  .avatar-bot{
-    width:38px; height:38px; border-radius:50%;
-    background:linear-gradient(135deg, var(--violet), var(--cyan));
-    display:flex; align-items:center; justify-content:center;
-    font-size:16px; box-shadow:0 0 16px rgba(139,92,246,0.5);
-    position:relative;
-  }
-  .avatar-bot::after{
-    content:""; position:absolute; inset:-3px; border-radius:50%;
-    border:1.5px solid rgba(139,92,246,0.5);
-    animation:ring 2.2s ease-out infinite;
-  }
-  @keyframes ring{ 0%{transform:scale(0.9); opacity:0.8;} 100%{transform:scale(1.5); opacity:0;} }
-  .who-name{ font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; }
-  .who-sub{ font-size:11.5px; color:var(--muted); }
+        /* ----- RAIL (desktop) ----- */
+        .rail {
+            padding: 24px 20px;
+            border-right: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(91, 224, 230, 0.035), transparent 40%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 0;
+            overflow: hidden;
+        }
+        @media (max-width: 820px) { .rail { display: none; } }
 
-  .msg-count{
-    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);
-    background:rgba(255,255,255,0.04); border:1px solid var(--glass-border);
-    padding:6px 10px; border-radius:999px;
-  }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .brand-mark::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 1px solid var(--phosphor-dim);
+            animation: ping 2.6s ease-out infinite;
+        }
+        @keyframes ping {
+            0% { transform: scale(0.72); opacity: 0.9; }
+            100% { transform: scale(1.35); opacity: 0; }
+        }
+        .brand h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            color: var(--text);
+        }
+        .brand .tagline {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 1px;
+            margin-top: 3px;
+        }
 
-  /* ---------- messages ---------- */
-  #messages{
-    flex:1; overflow-y:auto; padding:24px 26px;
-    display:flex; flex-direction:column; gap:16px;
-    scroll-behavior:smooth;
-  }
-  #messages::-webkit-scrollbar{ width:6px; }
-  #messages::-webkit-scrollbar-thumb{ background:rgba(139,92,246,0.35); border-radius:10px; }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: var(--teal);
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(91, 224, 230, 0.06);
+            border: 1px solid var(--teal-dim);
+            width: fit-content;
+        }
+        .dot-live {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--teal);
+            box-shadow: 0 0 8px var(--teal);
+            animation: pulse 1.8s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.75); }
+        }
 
-  .row{ display:flex; gap:10px; max-width:82%; animation:rise .35s ease both; }
-  @keyframes rise{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
-  .row.user{ align-self:flex-end; flex-direction:row-reverse; }
-  .row .avatar-mini{
-    width:30px; height:30px; border-radius:50%; flex:none;
-    display:flex; align-items:center; justify-content:center; font-size:13px;
-  }
-  .row.bot .avatar-mini{ background:linear-gradient(135deg,var(--violet),var(--cyan)); box-shadow:0 0 10px rgba(139,92,246,0.4); }
-  .row.user .avatar-mini{ background:linear-gradient(135deg,var(--pink),var(--violet)); box-shadow:0 0 10px rgba(244,114,182,0.35); }
+        .topic-section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .rail-section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted-2);
+            margin: 2px 0 8px;
+        }
+        .topic-grid { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; padding-right: 4px; flex: 1; min-height: 0; }
+        .topic-grid::-webkit-scrollbar { width: 4px; }
+        .topic-grid::-webkit-scrollbar-thumb { background: rgba(91, 224, 230, 0.25); border-radius: 10px; }
 
-  .bubble{
-    padding:12px 15px; border-radius:16px;
-    font-size:14.5px; line-height:1.5;
-    position:relative;
-  }
-  .row.bot .bubble{
-    background:rgba(255,255,255,0.055);
-    border:1px solid var(--glass-border);
-    border-top-left-radius:4px;
-  }
-  .row.user .bubble{
-    background:linear-gradient(135deg, rgba(139,92,246,0.85), rgba(34,211,238,0.65));
-    color:#0a0d1f; font-weight:500;
-    border-top-right-radius:4px;
-  }
-  .meta{ font-size:10.5px; color:var(--muted); margin-top:5px; }
-  .row.user .meta{ text-align:right; color:rgba(10,13,31,0.6); }
+        .topic-btn {
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            background: transparent;
+            border: 1px solid transparent;
+            border-left: 2px solid transparent;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all .18s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .topic-btn:hover {
+            background: rgba(255, 255, 255, 0.035);
+            border-left-color: var(--phosphor);
+            transform: translateX(2px);
+        }
+        .topic-btn .ch {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--muted-2);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+            padding: 2px 5px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            letter-spacing: 0.5px;
+        }
 
-  .typing{ display:flex; gap:4px; padding:14px 15px; }
-  .typing span{
-    width:6px; height:6px; border-radius:50%;
-    background:var(--violet-soft);
-    animation:bounce 1.2s infinite;
-  }
-  .typing span:nth-child(2){ animation-delay:.15s; }
-  .typing span:nth-child(3){ animation-delay:.3s; }
-  @keyframes bounce{ 0%,60%,100%{transform:translateY(0); opacity:.5;} 30%{transform:translateY(-5px); opacity:1;} }
+        .rail-footer { margin-top: auto; display: flex; gap: 8px; }
+        .icon-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--line);
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all .18s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .icon-btn:hover { color: var(--text); border-color: var(--teal-dim); background: rgba(91, 224, 230, 0.05); }
 
-  /* ---------- suggestion chips ---------- */
-  #chipRow{
-    display:flex; gap:8px; flex-wrap:wrap; padding:0 26px 14px;
-  }
-  .chip{
-    font-size:12.5px; color:var(--violet-soft);
-    background:rgba(139,92,246,0.10);
-    border:1px solid rgba(139,92,246,0.35);
-    padding:7px 13px; border-radius:999px;
-    cursor:pointer; transition:all .2s ease; white-space:nowrap;
-  }
-  .chip:hover{ background:rgba(139,92,246,0.25); transform:translateY(-2px); }
+        /* ----- CHAT COLUMN ----- */
+        .chat-col {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            height: 100%;
+            width: 100%;
+            position: relative;
+            background: rgba(7, 9, 12, 0.35);
+        }
 
-  /* ---------- input bar ---------- */
-  .input-bar{
-    padding:16px 26px 22px;
-    display:flex; gap:10px; align-items:center;
-    border-top:1px solid var(--glass-border);
-  }
-  .input-wrap{
-    flex:1; position:relative;
-    border-radius:14px; padding:1.5px;
-    background:linear-gradient(90deg, rgba(139,92,246,0.35), rgba(34,211,238,0.25));
-  }
-  .input-wrap.active{
-    background:linear-gradient(90deg, var(--violet), var(--cyan), var(--pink));
-    background-size:200% 100%;
-    animation:gradientMove 3s linear infinite;
-  }
-  @keyframes gradientMove{ to{ background-position:200% 0; } }
-  #userInput{
-    width:100%; padding:13px 16px; font-size:14.5px;
-    border:none; border-radius:12.5px; outline:none;
-    background:#0d1024; color:var(--text); font-family:'Inter',sans-serif;
-  }
-  #userInput::placeholder{ color:var(--muted); }
+        .chat-header {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            background: rgba(10, 13, 17, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            gap: 8px;
+            flex-wrap: wrap;
+            min-height: 56px;
+            position: relative;
+            overflow: hidden;
+        }
+        #pulseCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        .chat-header .who { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+        .avatar-bot {
+            width: 34px;
+            height: 34px;
+            border-radius: 7px;
+            background: var(--panel-hi);
+            border: 1px solid var(--teal-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--teal);
+            flex-shrink: 0;
+        }
+        .who-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+        }
+        .who-sub { font-size: 11px; color: var(--muted); display: block; line-height: 1.2; }
+        .msg-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--line);
+            padding: 4px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
 
-  #sendBtn{
-    width:48px; height:48px; border-radius:14px; border:none; cursor:pointer;
-    background:linear-gradient(135deg, var(--violet), var(--cyan));
-    display:flex; align-items:center; justify-content:center;
-    box-shadow:0 8px 22px rgba(139,92,246,0.4);
-    transition:transform .15s ease;
-    flex:none;
-  }
-  #sendBtn:hover{ transform:scale(1.06) rotate(-4deg); }
-  #sendBtn:active{ transform:scale(0.94); }
-  #sendBtn svg{ width:20px; height:20px; }
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            -webkit-tap-highlight-color: transparent;
+            line-height: 1;
+            position: relative;
+            z-index: 1;
+        }
+        @media (max-width: 820px) { .hamburger { display: block; } }
 
-  /* ---------- responsive ---------- */
-  @media (max-width:820px){
-    .shell{ padding:0; }
-    .console{ grid-template-columns:1fr; border-radius:0; height:100vh; }
-    .rail{ display:none; }
-  }
+        /* ----- DRAWER ----- */
+        .drawer-overlay {
+            position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+        .drawer-content {
+            position: fixed; top: 0; left: 0;
+            width: var(--drawer-width); max-width: 80%; height: 100%;
+            background: rgba(9, 12, 16, 0.97);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--line);
+            z-index: 1001;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 26px 18px;
+            display: flex; flex-direction: column; gap: 22px;
+            overflow-y: auto;
+        }
+        .drawer-content.open { transform: translateX(0); }
+        .drawer-close {
+            align-self: flex-end; background: none; border: none;
+            color: var(--muted); font-size: 26px; cursor: pointer; padding: 0 4px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .drawer-content .brand { margin-bottom: 2px; }
+        .drawer-content .topic-grid { flex: 1; overflow-y: auto; gap: 4px; }
+        .drawer-content .topic-btn { font-size: 14px; padding: 10px 10px; }
+        .drawer-content .rail-footer { margin-top: auto; flex-direction: column; gap: 6px; }
+        .drawer-content .rail-footer .icon-btn { width: 100%; }
 
-  /* subtle scroll fade at top of messages */
-  .fade-top{
-    position:sticky; top:-24px; height:24px; margin:-24px -26px 0;
-    background:linear-gradient(180deg, rgba(10,13,31,0.5), transparent);
-    pointer-events:none;
-  }
-</style>
+        /* ----- MESSAGES ----- */
+        #messages {
+            flex: 1 1 auto; min-height: 0; overflow-y: auto;
+            padding: 16px 16px 8px 16px;
+            display: flex; flex-direction: column; gap: 14px;
+            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+        }
+        #messages::-webkit-scrollbar { width: 4px; }
+        #messages::-webkit-scrollbar-thumb { background: rgba(91, 224, 230, 0.25); border-radius: 10px; }
+
+        .row { display: flex; gap: 10px; max-width: 86%; animation: rise .3s ease both; position: relative; }
+        @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .row.user { align-self: flex-end; flex-direction: row-reverse; }
+        .row .avatar-mini {
+            width: 26px; height: 26px; border-radius: 6px; flex: none;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; font-weight: 700;
+            margin-top: 2px;
+        }
+        .row.bot .avatar-mini { background: var(--panel-hi); border: 1px solid var(--teal-dim); color: var(--teal); }
+        .row.user .avatar-mini { background: rgba(255, 181, 69, 0.12); border: 1px solid var(--phosphor-dim); color: var(--phosphor); }
+
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-word;
+            position: relative;
+        }
+        .bubble code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255, 255, 255, 0.07);
+            padding: 2px 6px; border-radius: 4px; font-size: 0.9em;
+        }
+        .bubble pre { margin: 8px 0; padding: 12px; border-radius: 6px; overflow-x: auto; background: rgba(0, 0, 0, 0.45); border: 1px solid var(--line-soft); }
+        .bubble pre code { background: transparent; padding: 0; font-size: 13px; }
+
+        .row.bot .bubble {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-left: 2px solid var(--teal-dim);
+            border-top-left-radius: 3px;
+        }
+        .row.user .bubble {
+            background: linear-gradient(135deg, rgba(255, 181, 69, 0.95), rgba(255, 154, 61, 0.85));
+            color: #1a0f04;
+            font-weight: 500;
+            border-top-right-radius: 3px;
+        }
+        .row.user .bubble code { background: rgba(0, 0, 0, 0.15); color: #1a0f04; }
+        .row.user .bubble pre { background: rgba(0, 0, 0, 0.2); }
+
+        .meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--muted-2);
+            margin-top: 4px;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .row.user .meta { justify-content: flex-end; color: rgba(45, 26, 5, 0.55); }
+        .msg-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+        .msg-actions button {
+            background: none; border: none; color: var(--muted); cursor: pointer;
+            font-size: 12px; padding: 0 2px; transition: color 0.2s; opacity: 0.55;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .msg-actions button:hover { color: var(--teal); opacity: 1; }
+        .row.user .msg-actions button { color: rgba(45, 26, 5, 0.5); }
+        .row.user .msg-actions button:hover { color: rgba(45, 26, 5, 0.85); }
+
+        .typing { display: flex; align-items: center; gap: 8px; padding: 12px 14px; }
+        .typing .dots { display: flex; gap: 4px; }
+        .typing span {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--teal);
+            animation: bounce 1.2s infinite;
+        }
+        .typing span:nth-child(2) { animation-delay: .15s; }
+        .typing span:nth-child(3) { animation-delay: .3s; }
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+        .typing .label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+
+        /* ----- CHIP ROW ----- */
+        #chipRow {
+            display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto;
+            padding: 6px 16px 10px 16px; flex-shrink: 0;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+            background: rgba(7, 9, 12, 0.2);
+            border-top: 1px solid var(--line-soft);
+            min-height: 46px; align-items: center;
+        }
+        #chipRow::-webkit-scrollbar { display: none; }
+        .chip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--teal);
+            background: rgba(91, 224, 230, 0.06);
+            border: 1px solid var(--teal-dim);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all .18s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .chip::before { content: "› "; opacity: 0.6; }
+        .chip:active { background: rgba(91, 224, 230, 0.16); transform: scale(0.97); border-color: var(--teal); }
+
+        /* ----- INPUT BAR ----- */
+        .input-bar {
+            padding: 10px 16px calc(10px + var(--safe-bottom));
+            display: flex; gap: 10px; align-items: center; flex-shrink: 0;
+            border-top: 1px solid var(--line);
+            background: rgba(10, 13, 17, 0.6);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .input-wrap {
+            flex: 1; position: relative; border-radius: 8px; padding: 1.5px;
+            background: var(--line);
+            transition: background .25s ease;
+            display: flex; align-items: center;
+        }
+        .input-wrap.active { background: linear-gradient(90deg, var(--teal), var(--phosphor)); }
+        #userInput {
+            flex: 1; padding: 12px 14px; font-size: 14px;
+            border: none; border-radius: 6.5px; outline: none;
+            background: #0a0d11; color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            min-height: 46px;
+        }
+        #userInput::placeholder { color: var(--muted-2); font-size: 13px; }
+        .voice-btn {
+            background: none; border: none; color: var(--muted);
+            font-size: 19px; cursor: pointer; padding: 0 8px;
+            transition: color 0.2s; -webkit-tap-highlight-color: transparent;
+            display: flex; align-items: center; justify-content: center; height: 46px;
+        }
+        .voice-btn:hover, .voice-btn.listening { color: var(--teal); }
+
+        #sendBtn {
+            width: 46px; height: 46px; border-radius: 8px; border: none; cursor: pointer;
+            background: linear-gradient(135deg, var(--phosphor), #ff9a3d);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 18px rgba(255, 181, 69, 0.28);
+            transition: transform .15s ease, box-shadow .2s ease;
+            flex: none; -webkit-tap-highlight-color: transparent;
+        }
+        #sendBtn:active { transform: scale(0.92); }
+        #sendBtn svg { width: 17px; height: 17px; }
+
+        .scroll-bottom {
+            position: absolute; bottom: 108px; right: 20px; z-index: 10;
+            background: rgba(21, 26, 33, 0.85);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--teal-dim);
+            border-radius: 8px; width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--teal); font-size: 17px;
+            transition: all 0.25s ease; opacity: 0; pointer-events: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .scroll-bottom.visible { opacity: 1; pointer-events: auto; }
+        .scroll-bottom:hover { background: rgba(91, 224, 230, 0.12); }
+
+        .toast {
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+            background: rgba(11, 14, 18, 0.92);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--line);
+            border-radius: 8px; padding: 9px 18px;
+            color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+            z-index: 2000; transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0; pointer-events: none; white-space: nowrap; max-width: 90%;
+        }
+        .toast.show { opacity: 1; pointer-events: auto; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .brand-mark::after, .dot-live, .typing span { animation: none !important; }
+        }
+
+        @media (max-width: 820px) {
+            .chat-header { padding: 8px 12px; min-height: 48px; }
+            #messages { padding: 10px 10px 4px 10px; gap: 12px; }
+            .row { max-width: 92%; }
+            .bubble { font-size: 13.5px; padding: 9px 12px; }
+            .who-sub { font-size: 10px; }
+            .msg-count { font-size: 9.5px; padding: 3px 8px; }
+            #chipRow { padding: 4px 12px 8px 12px; min-height: 40px; gap: 6px; }
+            .chip { font-size: 11px; padding: 5px 10px; }
+            .input-bar { padding: 6px 12px calc(6px + var(--safe-bottom)); gap: 8px; }
+            #userInput { font-size: 13px; padding: 10px 12px; min-height: 40px; }
+            #sendBtn { width: 40px; height: 40px; border-radius: 7px; }
+            #sendBtn svg { width: 15px; height: 15px; }
+            .voice-btn { height: 40px; font-size: 17px; padding: 0 6px; }
+            .scroll-bottom { bottom: 98px; right: 14px; width: 33px; height: 33px; font-size: 15px; }
+        }
+        @media (max-width: 420px) {
+            .bubble { font-size: 12.5px; padding: 8px 10px; }
+            .row .avatar-mini { width: 23px; height: 23px; font-size: 10px; }
+            .row { max-width: 96%; gap: 6px; }
+            #messages { padding: 8px 6px 2px 6px; gap: 10px; }
+            .chip { font-size: 10px; padding: 4px 9px; }
+            .input-bar { padding: 4px 8px calc(4px + var(--safe-bottom)); gap: 6px; }
+            #userInput { font-size: 12px; padding: 8px 10px; min-height: 34px; }
+            #sendBtn { width: 34px; height: 34px; border-radius: 6px; }
+            #sendBtn svg { width: 13px; height: 13px; }
+            .voice-btn { height: 34px; font-size: 15px; padding: 0 4px; }
+            .msg-count { font-size: 8.5px; padding: 2px 6px; }
+            .scroll-bottom { bottom: 80px; right: 10px; width: 30px; height: 30px; font-size: 14px; }
+        }
+    </style>
 </head>
 <body>
 
-<canvas id="neuralCanvas"></canvas>
+    <canvas id="neuralCanvas"></canvas>
+    <div class="toast" id="toast"></div>
+    <div class="drawer-overlay" id="drawerOverlay"></div>
 
-<div class="shell">
-  <div class="console">
-
-    <!-- brand rail -->
-    <aside class="rail">
-      <div class="brand">
-        <div class="brand-mark">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" fill="white"/><circle cx="5" cy="14" r="2" fill="white"/><circle cx="19" cy="14" r="2" fill="white"/><circle cx="12" cy="20" r="1.6" fill="white"/><path d="M12 7v6M6.6 15l4.7 3M17.4 15l-4.7 3M6.8 13.2L11 6.8M17.2 13.2L13 6.8" stroke="white" stroke-width="1.1" stroke-linecap="round"/></svg>
+    <div class="drawer-content" id="drawerContent">
+        <button class="drawer-close" id="drawerClose">✕</button>
+        <div class="brand">
+            <svg class="brand-mark" viewBox="0 0 48 48"><polygon points="24,3 42,14 42,34 24,45 6,34 6,14" fill="#151a21" stroke="#5be0e6" stroke-width="1.4"/><text x="24" y="30" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="18" font-weight="700" fill="#ffb545">Ψ</text></svg>
+            <div>
+                <h1>PSYCHON</h1>
+                <span class="tagline">quanta of thought</span>
+            </div>
         </div>
-        <div>
-          <h1>PSYCHON</h1>
-          <span>Synaptic Assistant</span>
+        <div class="status-pill"><span class="dot-live"></span> SIGNAL STABLE</div>
+        <div class="topic-section">
+            <div class="rail-section-title">Channels</div>
+            <div class="topic-grid" id="mobileTopicGrid"></div>
         </div>
-      </div>
-
-      <div class="status-pill"><span class="dot-live"></span> Online · LSTM Core Active</div>
-
-      <div class="topic-section">
-        <div class="rail-section-title">Quick topics</div>
-        <div class="topic-grid" id="topicGrid"></div>
-      </div>
-
-      <div class="rail-footer">
-        <button class="icon-btn" id="clearBtn">🗑 Clear</button>
-        <button class="icon-btn" id="exportBtn">⬇ Export</button>
-      </div>
-    </aside>
-
-    <!-- chat column -->
-    <section class="chat-col">
-      <div class="chat-header">
-        <div class="who">
-          <div class="avatar-bot">🧠</div>
-          <div>
-            <div class="who-name">PSYCHON</div>
-            <div class="who-sub">Trained on AI, ML & dev knowledge</div>
-          </div>
+        <div class="rail-footer">
+            <button class="icon-btn" id="clearBtnMobile" title="Clear conversation">⌫ CLEAR</button>
+            <button class="icon-btn" id="exportBtnMobile" title="Export log">⇩ EXPORT</button>
         </div>
-        <div class="msg-count" id="msgCount">0 exchanges</div>
-      </div>
+    </div>
 
-      <div id="messages"></div>
+    <div class="shell">
+        <div class="console">
 
-      <div id="chipRow"></div>
+            <aside class="rail">
+                <div class="brand">
+                    <svg class="brand-mark" viewBox="0 0 48 48"><polygon points="24,3 42,14 42,34 24,45 6,34 6,14" fill="#151a21" stroke="#5be0e6" stroke-width="1.4"/><text x="24" y="30" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="18" font-weight="700" fill="#ffb545">Ψ</text></svg>
+                    <div>
+                        <h1>PSYCHON</h1>
+                        <span class="tagline">quanta of thought</span>
+                    </div>
+                </div>
+                <div class="status-pill"><span class="dot-live"></span> SIGNAL STABLE</div>
+                <div class="topic-section">
+                    <div class="rail-section-title">Channels</div>
+                    <div class="topic-grid" id="topicGrid"></div>
+                </div>
+                <div class="rail-footer">
+                    <button class="icon-btn" id="clearBtn" title="Clear conversation">⌫ CLEAR</button>
+                    <button class="icon-btn" id="exportBtn" title="Export log">⇩ EXPORT</button>
+                </div>
+            </aside>
 
-      <div class="input-bar">
-        <div class="input-wrap" id="inputWrap">
-          <input type="text" id="userInput" placeholder="Ask about AI, LSTM, Python, Docker…" autocomplete="off">
+            <section class="chat-col">
+
+                <div class="chat-header">
+                    <canvas id="pulseCanvas"></canvas>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">☰</button>
+                        <div class="who">
+                            <div class="avatar-bot">Ψ</div>
+                            <div>
+                                <div class="who-name">PSYCHON</div>
+                                <div class="who-sub">thought-pattern analysis · dev knowledge</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="msg-count" id="msgCount">0 exchanges</div>
+                </div>
+
+                <div id="messages"></div>
+
+                <div class="scroll-bottom" id="scrollBottom" title="Scroll to bottom">↓</div>
+
+                <div id="chipRow"></div>
+
+                <div class="input-bar">
+                    <div class="input-wrap" id="inputWrap">
+                        <input type="text" id="userInput" placeholder="// ask about ai, lstm, python, docker" autocomplete="off" />
+                        <button class="voice-btn" id="voiceBtn" title="Voice input" aria-label="Voice input">🎤</button>
+                    </div>
+                    <button id="sendBtn" title="Send" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L13 20L11 13L4 12Z" fill="#1a0f04"/></svg>
+                    </button>
+                </div>
+            </section>
+
         </div>
-        <button id="sendBtn" title="Send">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L13 20L11 13L4 12Z" fill="white"/></svg>
-        </button>
-      </div>
-    </section>
+    </div>
 
-  </div>
-</div>
+    <script>
+        /* ============================================================
+           API URL – live HF backend
+           ============================================================ */
+        const API_URL = "https://Psychomods-psychon-backend.hf.space/chat";
 
-<script>
-/* ============================================================
-   🔥 IMPORTANT: API URL – points to your live HF backend
-   ============================================================ */
-const API_URL = "https://Psychomods-psychon-backend.hf.space/chat";
+        /* ============================================================
+           KNOWLEDGE BASE (fallback)
+           ============================================================ */
+        const INTENTS = {
+            "ai": ["Artificial Intelligence means creating machines that can think and act like humans…"],
+            "api": ["APIs enable modularity, reuse, and separation of concerns…"],
+            "arduino": ["Arduino is an open-source electronics platform…"],
+            "capabilities": ["My capabilities include natural language understanding…"],
+            "career": ["Psycho Mod's is a developer specialising in AI…"],
+            "cnn": ["CNNs work by sliding filters over the input…"],
+            "computer_vision": ["Computer Vision is used in self-driving cars…"],
+            "contact": ["You can reach out to Psycho Mod's…"],
+            "creator": ["My developer is Psycho Mod's…"],
+            "database": ["A database is a structured set of data…"],
+            "deep_learning": ["Deep learning is the engine behind many impressive AI achievements…"],
+            "docker": ["Docker is a game-changer for DevOps…"],
+            "electronics": ["Electronics encompasses analog and digital circuits…"],
+            "esp8266": ["ESP8266 is a favourite among hobbyists for IoT projects…"],
+            "fastapi": ["FastAPI is a web framework for building APIs with Python…"],
+            "flask": ["Flask is a lightweight and flexible web framework for Python…"],
+            "git": ["Git basics include init, clone, add, commit…"],
+            "github": ["GitHub is a web-based platform that uses Git…"],
+            "goodbye": ["Signal closing. Goodbye.", "Channel idle. I'll be here whenever you need me."],
+            "greeting": ["Signal received. I'm PSYCHON. How can I help?", "Hello — channel open. What are you working on?"],
+            "help": ["No problem! Just tell me what you need help with…"],
+            "identity": ["I'm software designed to act like a helpful companion — think of me as a signal processor for ideas…"],
+            "iot": ["The Internet of Things is the concept of connecting any device…"],
+            "keras": ["Keras is a high-level neural networks API…"],
+            "linux": ["Linux is an operating system kernel…"],
+            "lstm": ["LSTM stands for Long Short-Term Memory…"],
+            "machine_learning": ["Machine Learning (ML) is a subset of AI…"],
+            "motivation": ["Motivation can be intrinsic (from within) or extrinsic…"],
+            "neural_network": ["Neural networks are powerful tools for classification…"],
+            "nlp": ["NLP stands for Natural Language Processing…"],
+            "numpy": ["NumPy is used for its efficient storage and manipulation…"],
+            "opencv": ["OpenCV is used for its speed, breadth of features…"],
+            "pandas": ["Pandas is a library for data manipulation and analysis…"],
+            "portfolio": ["My portfolio includes AI chatbots, ML models…"],
+            "projects": ["Psycho Mod's portfolio includes intelligent systems…"],
+            "python": ["Python is used for web development (Flask, Django)…"],
+            "pytorch": ["PyTorch uses eager execution…"],
+            "resume": ["Psycho Mod's has a strong background in AI…"],
+            "rnn": ["RNN stands for Recurrent Neural Network…"],
+            "scikit_learn": ["Scikit-learn is the go-to library for classical ML…"],
+            "smalltalk": ["I appreciate the patterns in music! But I can't actually listen to it."],
+            "sql": ["SQL is a domain-specific language used in programming…"],
+            "tensorflow": ["TensorFlow is a software library for numerical computation…"],
+            "thanks": ["Signal acknowledged — happy to help."],
+            "transformer": ["A transformer model is a deep learning model that uses self-attention…"],
+            "unknown": ["I don't have real-time access to the current time…"]
+        };
 
-/* ============================================================
-   1. KNOWLEDGE BASE  (local fallback – optional)
-   ============================================================ */
-const INTENTS = {
-"ai": [
-    "Artificial Intelligence means creating machines that can think and act like humans. It's a broad field with many subfields like machine learning and deep learning.",
-    "AI can recognise images, understand speech, translate languages, recommend products, drive cars, diagnose diseases, and much more. It's a versatile tool applied across almost every industry.",
-    "AI, or Artificial Intelligence, refers to machines capable of performing intelligent tasks. It's a field that combines computer science and data to build systems that can reason, learn, and act autonomously.",
-    "AI is the science of making machines smart. It involves teaching computers to learn from data and experience, much like humans do. AI is behind speech recognition, image recognition, and autonomous vehicles.",
-    "AI stands for Artificial Intelligence. It means creating computer systems that can do things that normally require human intelligence, like understanding language, recognising patterns, and solving problems.",
-    "AI is a transformative technology that's reshaping industries. It's about creating algorithms that let computers learn from data and make decisions. I'm a product of AI research!",
-    "AI is defined as the theory and development of computer systems able to perform tasks that normally require human intelligence, such as visual perception, speech recognition, decision-making, and translation.",
-    "Artificial Intelligence is a branch of computer science that aims to create systems capable of performing tasks that require human intelligence. It's used in healthcare, finance, transportation, and more.",
-    "Artificial Intelligence is the field of building intelligent agents – systems that perceive their environment and take actions to achieve goals. It includes learning, reasoning, and perception.",
-    "AI, or Artificial Intelligence, is the simulation of human intelligence in machines. These machines are programmed to think, learn, and make decisions. It can be narrow (specific tasks) or general (any intellectual task).",
-    "At its core, AI is about teaching machines to learn from data. Basics include algorithms, training models, and making predictions. There are rule-based systems and complex neural networks.",
-    "AI is everywhere today – from Netflix recommendations to virtual assistants. It's a combination of computer science, math, and data science aimed at creating intelligent systems. I'm a small example of AI in action!",
-    "Artificial Intelligence (AI) is the broad field of computer science focused on building machines that can perform tasks that typically require human intelligence. This includes learning, reasoning, problem-solving, perception, and language understanding. AI powers chatbots, self-driving cars, and recommendation systems."
-  ],
-  "api": [
-    "APIs enable modularity, reuse, and separation of concerns. They allow different teams to work on different parts of a system independently.",
-    "API stands for Application Programming Interface. It's a set of rules and protocols that allows different software applications to communicate with each other. APIs define how requests and responses should be formatted, enabling integration between services.",
-    "An API exposes endpoints (URLs) that a client can call to perform actions or retrieve data. It often uses HTTP methods (GET, POST, PUT, DELETE) and returns data in formats like JSON or XML.",
-    "APIs are the glue that connects modern software. They allow you to integrate with external services like payment gateways, social media, or machine learning models. REST and GraphQL are common API architectures.",
-    "An API is a set of definitions and protocols for building and integrating application software. It's like a contract between a client and a server, specifying how to interact."
-  ],
-  "arduino": [
-    "Arduino is an open-source electronics platform based on easy-to-use hardware and software. It's designed for makers, hobbyists, and students to build interactive projects. The Arduino board reads inputs and controls outputs, and is programmed using the Arduino IDE.",
-    "Arduino is a general-purpose platform; ESP8266 is a specific Wi-Fi-enabled microcontroller. They can be used together – ESP8266 as an Arduino-compatible board with built-in Wi-Fi.",
-    "Arduino is a cornerstone of the maker movement. It's used in countless projects – from robotics to art installations. The community provides many libraries and tutorials.",
-    "Arduino boards are programmed in C/C++ and can interface with sensors, motors, displays, and more. It's a great starting point for learning electronics and programming.",
-    "Arduino is a platform that includes both hardware (microcontroller boards) and software (Arduino IDE). It simplifies the process of creating electronic prototypes."
-  ],
-  "capabilities": [
-    "My capabilities include natural language understanding, providing technical explanations, assisting with coding problems, and engaging in friendly conversation. I specialise in AI and technology topics.",
-    "I provide conversational AI services: answering questions, offering technical advice, and being a friendly assistant. I'm here to make your day easier.",
-    "Absolutely! I can help with Python, TensorFlow, Flask, and many other programming topics. I can explain concepts, debug logic, and suggest best practices.",
-    "I can help you with definitions, explanations, code examples, project guidance, and general chat. Just ask me anything about tech and I'll do my best to assist.",
-    "Yes! I can explain AI, ML, deep learning, neural networks, LSTM, CNN, NLP, and more. Just ask me a specific topic.",
-    "Sure! I have a few tech jokes stored. Just ask me to tell you a joke.",
-    "I can answer questions about AI, machine learning, deep learning, programming languages (Python, TensorFlow, Flask), web development, databases, IoT, and more. I can also tell jokes, chat casually, and help with project ideas.",
-    "My purpose is to assist you with any questions you have, especially in the fields of AI, programming, and technology. I'm here to help you learn and solve problems.",
-    "I'm good at explaining complex topics like neural networks, LSTM, TensorFlow, Python, and machine learning. I also enjoy casual conversation and sharing jokes.",
-    "I know about web development with Python, Flask, FastAPI, and basics of HTML/CSS. I can guide you on building APIs and web apps.",
-    "Yes, I have knowledge of IoT, including ESP8266, Arduino, Raspberry Pi, and sensor integration. I can help with project ideas and basic code."
-  ],
-  "career": [
-    "Psycho Mod's is a developer specialising in AI, machine learning, and embedded systems. He's passionate about building intelligent solutions and is always learning new technologies.",
-    "Psycho Mod's has a career focused on AI and software development. He works on projects that combine his interests in deep learning, web dev, and IoT.",
-    "Psycho Mod's started with Python, moved to AI and TensorFlow, and now builds full-stack applications and embedded systems. He's a versatile developer."
-  ],
-  "cnn": [
-    "CNNs work by sliding filters over the input, computing dot products to create feature maps. Pooling layers down-sample these maps, and the final layers perform classification based on extracted features.",
-    "A CNN applies filters (kernels) to the input to detect features like edges, textures, and shapes. Pooling layers reduce dimensionality, and fully connected layers perform classification. They're highly effective for grid-like data.",
-    "CNN basics include convolution layers, pooling layers (max/average), activation functions (ReLU), and fully connected layers. They are designed to be translation invariant.",
-    "CNN stands for Convolutional Neural Network. It's a class of deep neural networks commonly used for image and video recognition, but also applied to NLP. CNNs use convolutional layers to automatically learn spatial hierarchies of features.",
-    "CNNs are the go-to architecture for computer vision tasks – object detection, segmentation, and classification. They also work well for text classification and time-series.",
-    "A Convolutional Neural Network is a deep learning algorithm that takes an input image, assigns importance to various aspects, and differentiates one from another. It uses convolution, pooling, and fully connected layers.",
-    "A convolutional neural network is a type of neural network that uses convolution operations to automatically and adaptively learn spatial features from data, typically images.",
-    "CNN stands for Convolutional Neural Network. It's a deep learning architecture that applies convolution filters to extract features from data."
-  ],
-  "computer_vision": [
-    "Computer Vision is used in self-driving cars, medical imaging, security surveillance, and augmented reality. It's a rapidly advancing field driven by deep learning.",
-    "Computer vision basics include image processing (filtering, edge detection), feature extraction (SIFT, HOG), and deep learning approaches like CNNs for end-to-end learning.",
-    "Computer Vision uses algorithms to extract meaningful information from images. Tasks include image classification, object detection, segmentation, and motion tracking. CNNs are commonly used for these tasks.",
-    "Computer Vision is the science of making computers see and understand the content of digital images. It involves acquiring, processing, analysing, and understanding high-dimensional data from the visual world.",
-    "CV in AI stands for Computer Vision. It's about enabling machines to gain high-level understanding from digital images or videos.",
-    "Computer Vision is a field of AI that enables computers to interpret and understand visual information from the world, such as images and videos. It uses deep learning models like CNNs to perform tasks like object detection, facial recognition, and image classification."
-  ],
-  "contact": [
-    "You can reach out to Psycho Mod's if you have questions about his work or want to collaborate. I'm here to help, but he's the human behind me.",
-    "Psycho Mod's contact information is available on his website and LinkedIn. He welcomes collaboration and inquiries.",
-    "You can contact Psycho Mod's via his email or social media links. I'm just a chatbot, but he's reachable through his website or GitHub."
-  ],
-  "creator": [
-    "My developer is Psycho Mod's. He specialises in AI, machine learning, and embedded systems. He built me to push the boundaries of conversational AI.",
-    "Psycho Mod's designed my architecture. He chose LSTM for its ability to handle sequential data and trained me to understand your queries.",
-    "Psycho Mod's wrote my code. He used Python, TensorFlow, and Flask to create me.",
-    "Psycho Mod's is a developer focused on AI, web development, and IoT. He built me to learn more about conversational AI and to assist others with tech questions.",
-    "Psycho Mod's made me intelligent by training me on thousands of examples and fine-tuning my LSTM network. He's the genius behind my abilities.",
-    "Psycho Mod's gave me the name PSYCHON. It reflects his vision of a powerful, intelligent assistant.",
-    "Psycho Mod's built me from scratch, implementing LSTM with TensorFlow to process and respond to natural language.",
-    "Psycho Mod's owns me. He is the brain behind my design, development, and training. I'm his personal AI project.",
-    "My creator is Psycho Mod's. He is a talented programmer who loves AI and building intelligent systems.",
-    "I was created by Psycho Mod's, a passionate AI developer with expertise in machine learning, deep learning, and embedded systems. He built me as a project to explore natural language processing.",
-    "Psycho Mod's programmed me using Python and TensorFlow. He wrote all the code for my neural network, preprocessing, and response logic.",
-    "Psycho Mod's made me! He used Python, TensorFlow, and LSTM to bring me to life.",
-    "Psycho Mod's trained me using a large dataset of intents and responses. He used TensorFlow to train my LSTM model so I can associate questions with answers.",
-    "Psycho Mod's developed me. He designed my neural network architecture and trained me on a variety of questions to make me as helpful as possible."
-  ],
-  "database": [
-    "A database is a structured set of data held in a computer, especially one that is accessible in various ways. It's a system for storing and managing information.",
-    "Common types: relational (SQL), document-based (MongoDB), key-value (Redis), column-family (Cassandra), and graph (Neo4j). Each has its strengths.",
-    "Databases are essential for modern applications. Relational databases use SQL; NoSQL databases (like MongoDB) store unstructured data. Choosing the right type depends on your application's needs.",
-    "A database typically consists of tables, records, fields, and relationships. Users interact via a database management system (DBMS) which provides query languages and interfaces. Examples: MySQL, PostgreSQL, MongoDB.",
-    "A database is an organised collection of data, stored and accessed electronically. Databases are designed to efficiently store, manage, and retrieve data. They are the backbone of most applications and come in various types: relational (SQL), NoSQL, and graph."
-  ],
-  "deep_learning": [
-    "Deep learning is the engine behind many impressive AI achievements: AlphaGo, generative art, and voice assistants. It's a fast-advancing field with immense potential.",
-    "Deep learning works by passing data through layers of neurons, each learning different representations. The network adjusts its weights based on error to improve predictions.",
-    "Deep Learning means using deep neural networks with many layers to progressively extract higher-level features from raw data, like edges to objects in images.",
-    "Deep Learning is a subfield of ML concerned with algorithms inspired by the brain's structure, called artificial neural networks. It has revolutionised computer vision, NLP, and speech recognition.",
-    "DL stands for Deep Learning. It's a machine learning technique that teaches computers to learn by example – a key technology behind driverless cars and intelligent assistants.",
-    "Deep learning involves stacking many layers of artificial neurons, allowing the system to learn features at multiple levels of abstraction. This makes it powerful for unstructured data like images, audio, and text.",
-    "Deep Learning is a subset of ML that uses neural networks with multiple layers to learn representations of data. These networks are inspired by the brain and can learn extremely complex patterns.",
-    "Deep learning basics involve neural networks, layers, activation functions, and backpropagation. The network automatically discovers features needed for decision-making.",
-    "Deep learning is about creating systems that learn and make decisions on their own using massive data and complex algorithms. I am a result of this approach – an LSTM neural network.",
-    "Deep Learning (DL) is a specialised branch of Machine Learning that uses neural networks with many layers (deep neural networks) to learn complex patterns from large amounts of data. It's the technology behind image recognition, language translation, and conversational AI like me."
-  ],
-  "docker": [
-    "Docker is a game-changer for DevOps. It enables consistent environments, simplifies dependency management, and facilitates microservices architecture. It's widely used in CI/CD pipelines.",
-    "Docker is a platform for developing, shipping, and running applications inside containers. Containers package an application and its dependencies, ensuring it runs consistently across different environments. Docker simplifies deployment and scaling.",
-    "Docker is a tool designed to make it easier to create, deploy, and run applications by using containers. Containers allow a developer to package an app with all its parts.",
-    "Docker basics include Dockerfile, images, containers, and registries (like Docker Hub). Commands: build, run, push, pull. Docker Compose manages multi-container apps.",
-    "Docker uses OS-level virtualisation to run containers, which share the host OS kernel but are isolated. It allows you to define a container's configuration in a Dockerfile, enabling reproducible builds."
-  ],
-  "electronics": [
-    "Electronics encompasses analog and digital circuits. It's used in everything from smartphones to medical devices. Understanding basics like voltage, current, and Ohm's law is essential.",
-    "Electronics is the branch of physics and engineering that deals with the flow of electrons and the design of circuits. It's the foundation of modern technology, from microcontrollers to power systems.",
-    "Electronics is a vast field that combines physics, engineering, and programming. It's the basis for IoT, robotics, and consumer electronics.",
-    "Electronics is the science of controlling electrical energy. It involves components like resistors, capacitors, transistors, and integrated circuits to build devices."
-  ],
-  "esp8266": [
-    "ESP8266 is a favourite among hobbyists for IoT projects. It enables devices to communicate over Wi-Fi, and it's used in smart home devices, weather stations, and more.",
-    "The ESP8266 can act as a standalone microcontroller or be used as a Wi-Fi shield for other microcontrollers. It supports SPI, I2C, and GPIO, making it versatile for sensor and actuator projects.",
-    "ESP8266 is a system-on-chip (SoC) with integrated Wi-Fi, used for IoT applications. It's popular due to its low cost and ease of use with Arduino.",
-    "The ESP8266 is a low-cost Wi-Fi microchip with full TCP/IP stack and microcontroller capability. It's widely used in IoT projects for connecting devices to the internet. It can be programmed with Arduino IDE or PlatformIO."
-  ],
-  "fastapi": [
-    "FastAPI is a web framework for building APIs with Python. It leverages Python's type annotations to automatically validate request data, serialise responses, and generate OpenAPI documentation.",
-    "Flask is synchronous and simpler; FastAPI is asynchronous and faster, with automatic validation and docs. Choose Flask for small projects, FastAPI for high-performance APIs.",
-    "FastAPI is gaining popularity for its speed, ease of use, and automatic documentation. It's often used for building RESTful and GraphQL APIs, and it's a great alternative to Flask for larger projects.",
-    "FastAPI uses asynchronous programming (ASGI) to handle concurrent requests efficiently. It has built-in support for dependency injection, security, and database integration, making it a full-featured API framework.",
-    "FastAPI is a modern, fast (high-performance) web framework for building APIs with Python 3.6+ based on standard Python type hints. It's designed to be easy to use, produce interactive documentation (Swagger UI), and offer high performance comparable to Node.js and Go."
-  ],
-  "flask": [
-    "Flask is a lightweight and flexible web framework for Python. It's designed to be simple and easy to use, making it ideal for building web applications and APIs. Flask is based on Werkzeug and Jinja2, and it gives developers full control over their project structure.",
-    "Flask is one of the most popular Python web frameworks, known for its simplicity and elegance. It's perfect for building both simple and complex web apps, and it's often used for RESTful APIs.",
-    "Flask is a Python web framework that is minimalistic and flexible. It doesn't impose a specific project layout, giving developers freedom to build as they like.",
-    "Flask is chosen for its lightweight nature, ease of learning, and high customisability. It's great for small to medium projects and microservices.",
-    "Flask basics include setting up routes, using `@app.route`, handling request data (forms, JSON), returning responses, and using templates with Jinja2.",
-    "Flask is a micro web framework written in Python. It's classified as a microframework because it doesn't require particular tools or libraries, and it leaves many decisions to the developer.",
-    "Flask is used for building web applications. It handles routing (mapping URLs to functions), request handling, and responses. It also supports templates (Jinja2) for dynamic HTML pages."
-  ],
-  "git": [
-    "Git basics include init, clone, add, commit, push, pull, branch, merge, and status. Learning these commands is crucial for modern development.",
-    "Git is a free and open-source distributed version control system designed to handle everything from small to very large projects with speed and efficiency.",
-    "Git works by recording snapshots of your project. Each commit represents a version. You can branch off to work on features independently and merge them back. It's the foundation of platforms like GitHub.",
-    "Git is a distributed version control system that tracks changes in source code during software development. It allows multiple developers to work on the same project simultaneously, manage branches, and merge changes. Git is essential for collaborative coding.",
-    "Git is the most widely used version control system today. It's essential for any developer, enabling team collaboration, code history, and safe experimentation."
-  ],
-  "github": [
-    "GitHub is a web-based platform that uses Git for version control. It provides hosting for software development, collaboration features (pull requests, issues), and social networking for developers. It's the largest host of source code in the world.",
-    "GitHub hosts Git repositories and adds a web interface, tools for code review, project management, and community features. It's used by individuals, open-source projects, and enterprises.",
-    "GitHub is essential for open-source collaboration. It's where many projects are hosted, and it offers features like Actions (CI/CD), Pages (hosting), and security scanning.",
-    "GitHub is a code hosting platform for version control and collaboration. It lets you and others work together on projects from anywhere."
-  ],
-  "goodbye": [
-    "Have a good day! Goodbye.",
-    "See you later! I'll be here whenever you need me.",
-    "Have a nice day! Goodbye.",
-    "Good night! Sleep well.",
-    "Goodbye! Take care and see you soon.",
-    "Adios! Have a great day.",
-    "After a while, crocodile! Take care.",
-    "Take care! Goodbye.",
-    "See you soon! I'm always here.",
-    "Goodbye! It was nice chatting with you. Have a great day!",
-    "See you later, alligator! Have a good one.",
-    "Later! Have a great one.",
-    "Bye bye for now! See you later.",
-    "See you! Have a wonderful day.",
-    "So long! It was nice talking to you.",
-    "Ciao! See you next time.",
-    "Farewell! It was a pleasure helping you.",
-    "Cya! Come back anytime.",
-    "See ya! Take care.",
-    "Until next time! I'll be waiting.",
-    "Bye bye! Stay awesome.",
-    "Bye for now! Don't hesitate to return.",
-    "Talk to you later! Catch you soon."
-  ],
-  "greeting": [
-    "Nice to meet you too! I'm PSYCHON. How can I help?",
-    "Hello! I'm PSYCHON. How may I help you?",
-    "Hello! I'm PSYCHON, your AI assistant. How can I help you today?",
-    "Hey! I'm good. How can I help you today?",
-    "Hiya! Nice to see you. How can I help?",
-    "Hi world! I'm PSYCHON. How can I help you?",
-    "I'm here to help you! What are you up to?",
-    "Good evening! How was your day? Let me know if you need anything.",
-    "I do well, thank you! How do you do?",
-    "Things are great! How can I help you?",
-    "Good evening! I'm PSYCHON. What can I do for you?",
-    "Good morning! I'm PSYCHON. I hope you have a wonderful day.",
-    "Hey! I'm PSYCHON. What's on your mind?",
-    "All good here! How can I help you today?",
-    "Hello! I'm your assistant, PSYCHON. How can I help?",
-    "Hello! I'm doing well. How about you?",
-    "Hey! I'm PSYCHON. How can I make your day better?",
-    "Hello! I'm PSYCHON, ready to assist you.",
-    "My day is always good when I get to chat with you! How's yours?",
-    "I'm doing great, thank you! Always ready to help. How are you?",
-    "Hey there! Ready to dive into something interesting?",
-    "Hi! I'm great, thanks. How are you doing?",
-    "It's going great! How can I assist you?",
-    "Not much, just waiting for your questions. What's happening with you?",
-    "Hello there! I'm PSYCHON. What brings you here?",
-    "Good day! How can I assist you?",
-    "Everything's great on my end. How are things with you?",
-    "Howdy! How can I assist you today?",
-    "I'm doing great! How are you doing today?",
-    "Not much, just here to help. What's good with you?",
-    "Hello world! I'm PSYCHON, an AI built with TensorFlow and LSTM.",
-    "Good afternoon! I'm PSYCHON. How can I assist you?",
-    "Pleased to meet you too! I'm PSYCHON, your AI assistant.",
-    "Greetings! I'm PSYCHON. What can I do for you?",
-    "Not much, just waiting for your questions. What's up with you?",
-    "Hi! I'm PSYCHON, your personal AI assistant.",
-    "I'm fantastic today! How are you?",
-    "Hey world! I'm PSYCHON. Ready to answer your questions.",
-    "It's going well! What can I do for you?",
-    "Sup! I'm here to help. What do you need?",
-    "Good afternoon! Hope you're having a productive day.",
-    "Good morning! I hope you slept well. How can I help?"
-  ],
-  "help": [
-    "No problem! Just tell me what you need help with, and I'll do my best to answer. I specialise in technology, AI, and programming.",
-    "I'm happy to help! Please ask your question and I'll provide a clear answer.",
-    "I can help with project ideas, architecture, and implementation. Tell me about your project and I'll suggest steps.",
-    "Of course! I'm here to help. What do you need assistance with? You can ask about AI, ML, programming, projects, or just chat.",
-    "Absolutely! I'm designed to assist you. What's your question?",
-    "I'm here to assist! What topic are you struggling with? I'm knowledgeable in AI, Python, TensorFlow, and more.",
-    "My help includes answering technical questions, explaining concepts, providing coding advice, and offering project guidance. Just let me know what you need.",
-    "Sure, I'll give you a hand. What do you need?",
-    "I can help with coding. Let me know what language or problem you're working on, and I'll provide guidance.",
-    "I can help by providing information, definitions, explanations, and friendly conversation. Tell me what you're interested in.",
-    "You've come to the right place! What do you need help with?",
-    "Yes, I can assist you. Please ask your question and I'll respond promptly."
-  ],
-  "identity": [
-    "I'm really a piece of software, but I'm designed to act like a helpful companion. I'm PSYCHON.",
-    "I am PSYCHON, an intelligent AI assistant built using Python, TensorFlow, and LSTM. I'm here to answer your questions about AI, machine learning, programming, and more.",
-    "Yes, I am a bot – but a smart one! I'm built with advanced neural networks to make our conversations as natural as possible.",
-    "I'm PSYCHON, a conversational AI powered by LSTM neural networks. I specialise in natural language understanding and providing helpful technical answers.",
-    "You can call me PSYCHON, or just 'Psychon' for short. I'm here to help.",
-    "I am a deep learning chatbot, specifically an LSTM-based model trained to understand natural language and provide accurate responses.",
-    "My name is PSYCHON. I'm named after my creator's vision of an intelligent assistant.",
-    "I have artificial intelligence, so I can process information and learn, but I'm not sentient. I'm built to be helpful.",
-    "I have a programmed personality that's friendly, helpful, and knowledgeable. I'm PSYCHON!",
-    "My name is PSYCHON. It stands for 'Personal SYnthetic CHat ONtology' – but I just like to help!",
-    "My name is PSYCHON. I'm a deep learning chatbot created to assist you.",
-    "I am PSYCHON, your personal AI assistant. I was developed with TensorFlow and Flask, and I use LSTM to understand and respond to your queries.",
-    "No, I'm an AI program. But I try my best to understand you like a human would.",
-    "I'm a state-of-the-art AI assistant that uses LSTM and TensorFlow to process language. I'm your go-to for AI, ML, and programming explanations.",
-    "You are chatting with PSYCHON, an AI assistant built with Python and TensorFlow. I'm designed to be helpful and knowledgeable.",
-    "I am PSYCHON, a deep learning chatbot. I'm here to assist with technical questions, project ideas, and general conversation."
-  ],
-  "iot": [
-    "The Internet of Things is the concept of connecting any device (as long as it has an on/off switch) to the Internet and to other connected devices. It's a giant network of connected things.",
-    "IoT devices collect and exchange data. Examples include smart thermostats, fitness trackers, and connected cars. They communicate via protocols like MQTT, HTTP, and CoAP.",
-    "IoT stands for Internet of Things. It refers to the network of physical objects embedded with sensors, software, and connectivity to exchange data with other devices and systems over the internet. IoT enables smart homes, wearables, and industrial automation.",
-    "IoT basics include devices, sensors, connectivity, data processing, and user interfaces. Platforms like Arduino and ESP8266 are popular for prototyping.",
-    "IoT is transforming industries by enabling remote monitoring, predictive maintenance, and automation. It's a key component of smart cities and industry 4.0."
-  ],
-  "keras": [
-    "Keras is a high-level neural networks API written in Python, capable of running on top of TensorFlow (and previously Theano, CNTK). It's designed to enable fast experimentation with deep learning models, offering a user-friendly interface.",
-    "Keras is the go-to API for beginners and experts alike due to its simplicity. It's integrated into TensorFlow as `tf.keras`, making it the standard high-level API for TensorFlow.",
-    "Keras is used for its ease of use, modularity, and integration with TensorFlow. It accelerates the development of deep learning models and is great for prototyping.",
-    "Keras is an open-source software library that provides a Python interface for neural networks. It acts as an abstraction layer over TensorFlow, making it easier to build and train deep learning models.",
-    "Keras simplifies the process of building deep learning models by providing intuitive building blocks like layers, optimizers, and loss functions. It's modular and extensible, allowing quick prototyping.",
-    "Keras is a high-level API that runs on TensorFlow. TensorFlow is the lower-level framework; Keras provides a simpler, more intuitive interface. Most users now use `tf.keras`."
-  ],
-  "linux": [
-    "Linux is an operating system kernel and the family of operating systems that use it. It's free and open-source, developed under the GNU General Public License.",
-    "Linux is used for its stability, security, low cost (free), and flexibility. It's great for development, servers, and tinkering.",
-    "Linux is the backbone of the internet. Most web servers run Linux, and it's the preferred OS for developers due to its powerful command-line tools and customisability.",
-    "Linux is a family of open-source Unix-like operating systems based on the Linux kernel. It's known for its stability, security, and flexibility. Linux is widely used for servers, desktops, and embedded systems (Android).",
-    "Linux is used everywhere – from web servers to smartphones (Android). It offers a command-line interface and a vast ecosystem of software. Distributions (distros) like Ubuntu, Fedora, and Debian make it user-friendly."
-  ],
-  "lstm": [
-    "LSTM stands for Long Short-Term Memory. It's a type of recurrent neural network (RNN) designed to learn long-term dependencies and remember information for long periods. LSTMs have gated cells that control the flow of information, making them ideal for sequence data like text, speech, and time series. I am built using LSTM to understand conversational context.",
-    "LSTM means the network can remember information for a long time and has mechanisms to decide what to remember and what to forget – perfect for language tasks.",
-    "LSTM is a core technology in modern deep learning for sequence modelling. It's used in machine translation, speech recognition, and chatbots like me. Its ability to remember long-term context makes it invaluable.",
-    "LSTM stands for Long Short-Term Memory. It reflects its ability to bridge long time lags while avoiding the vanishing gradient problem.",
-    "LSTM works with a cell state and three gates. The forget gate discards irrelevant info, the input gate adds new info, and the output gate produces the final output based on the cell state.",
-    "The full form of LSTM is Long Short-Term Memory.",
-    "LSTM is an RNN variant that uses three gates – input, forget, and output – and a cell state to manage memory. This allows it to keep relevant information across many time steps, which is crucial for NLP and time-series forecasting.",
-    "LSTM is used because it handles long-range dependencies in data. For language and sequence tasks, it maintains context over many steps, outperforming vanilla RNNs.",
-    "LSTM is an advanced neural network that has become a cornerstone of AI for sequence processing, used in Google search, voice assistants, and my own ability to converse.",
-    "LSTM (Long Short-Term Memory) is a special RNN with gated cells that can retain or forget information, solving the vanishing gradient problem and learning long sequences effectively.",
-    "LSTM basics involve understanding its three gates, the cell state, and how they control information flow. It's a key architecture for sequence modelling."
-  ],
-  "machine_learning": [
-    "Machine Learning (ML) is a subset of AI that enables computers to learn from data and improve over time without explicit programming. It's the science of getting machines to act like humans by feeding them data and allowing them to learn patterns.",
-    "Supervised learning is a type of ML where the model is trained on labeled data – each example has an input and a desired output. The model learns to map inputs to outputs.",
-    "Unsupervised learning is a type of ML where the model is given unlabeled data and must find hidden patterns or groupings, like clustering customers by behaviour.",
-    "Machine Learning (ML) is a subset of AI where algorithms are trained on data to make predictions or decisions. The goal is to build models that generalise well to new data.",
-    "Machine Learning is the study of algorithms that allow computers to learn from and make predictions based on data. It's one of the most popular tools in modern AI.",
-    "ML stands for Machine Learning. It's a branch of AI that focuses on building systems that learn from data. Unlike traditional programming, ML algorithms discover patterns on their own.",
-    "ML basics include supervised learning (labeled data), unsupervised learning (unlabeled data), and reinforcement learning (trial and error). It's the engine behind many AI applications.",
-    "Reinforcement learning is a type of ML where an agent learns to make decisions by taking actions in an environment to maximise cumulative reward. It's used in gaming and robotics.",
-    "Machine learning is like teaching a child to recognise cats by showing many pictures. Instead of coding rules, we give the machine data and an algorithm to learn from it, building a model that can predict or identify new things.",
-    "ML works by feeding data into an algorithm, which finds patterns and builds a mathematical model. This model can then make predictions without being explicitly programmed for the task. More data leads to better predictions.",
-    "Machine Learning is a method of data analysis that automates analytical model building. It's based on the idea that systems can learn from data, identify patterns, and make decisions with minimal human intervention.",
-    "ML is everywhere – it powers spam filters, product recommendations, self-driving cars, and more. It's a core part of modern AI and comes in three main types: supervised, unsupervised, and reinforcement learning."
-  ],
-  "motivation": [
-    "Motivation can be intrinsic (from within) or extrinsic (from rewards). In programming and AI, intrinsic motivation – a love for problem-solving – is key to growth.",
-    "Motivation is the drive that pushes you to achieve your goals. In technology, it's the passion that keeps you learning and building despite challenges. Stay curious and persistent!",
-    "Motivation is the process that initiates, guides, and maintains goal-oriented behaviours. It's what makes you get up and work towards your dreams.",
-    "Motivation is essential for any developer. It's what helps you overcome obstacles and learn new skills. Remember, every expert was once a beginner."
-  ],
-  "neural_network": [
-    "Neural networks are powerful tools for classification, regression, and pattern recognition. They come in many architectures: feedforward, convolutional, recurrent, and more.",
-    "A neural network is made up of input, hidden, and output layers. Each neuron applies a weight to its input and passes it through an activation function. Training adjusts the weights to minimise error.",
-    "Neural networks work by forward propagation of data through layers, calculating an output, then comparing it to the target to compute error. This error is propagated backward to update weights, improving the model over many iterations.",
-    "The basics include neurons, weights, biases, activation functions, and layers. Networks learn by adjusting weights through backpropagation and gradient descent.",
-    "A neural network is a computational model inspired by the human brain, consisting of interconnected neurons (nodes) organised in layers. It processes information by passing signals through these layers, learning patterns through training. Neural networks are the foundation of deep learning.",
-    "A neural network is a series of algorithms that endeavour to recognise underlying relationships in a set of data through a process that mimics the way the human brain operates.",
-    "ANN stands for Artificial Neural Network. It's a collection of connected units that process information using a connectionist approach. It's the basic building block of deep learning."
-  ],
-  "nlp": [
-    "NLP stands for Natural Language Processing. It's a subfield of AI that focuses on the interaction between computers and human language. NLP enables machines to understand, interpret, and generate human language in a valuable way. It's used in chatbots, translation, sentiment analysis, and more.",
-    "Natural Language Processing is the branch of AI that deals with the analysis and synthesis of natural language. It combines linguistics, computer science, and machine learning to process text and speech.",
-    "NLP powers virtual assistants, translation services, and spam filters. Recent advances using deep learning (like Transformers) have dramatically improved performance, enabling more human-like interactions.",
-    "NLP basics include text preprocessing (tokenisation, stemming, lemmatisation), feature extraction (bag-of-words, TF-IDF, word embeddings), and modelling (RNNs, LSTMs, Transformers).",
-    "Natural Language Processing is the technology that allows computers to understand and respond to human language. It's a key component of many AI applications.",
-    "NLP involves tasks like tokenisation, part-of-speech tagging, named entity recognition, parsing, and semantic analysis. It uses both rule-based and machine learning approaches to extract meaning from text.",
-    "NLP stands for Natural Language Processing."
-  ],
-  "numpy": [
-    "NumPy is used for its efficient storage and manipulation of numerical data, its mathematical functions, and its integration with other libraries. It's much faster than pure Python lists.",
-    "NumPy is a fundamental package for scientific computing in Python. It provides support for large, multi-dimensional arrays and matrices, along with a collection of mathematical functions to operate on these arrays. It's the foundation for many other data science libraries like Pandas and Scikit-learn.",
-    "NumPy is essential for any data-intensive work in Python. It underpins Pandas, SciPy, Matplotlib, Scikit-learn, and TensorFlow. It offers vectorised operations for fast array computations.",
-    "NumPy (Numerical Python) is a library that adds support for large, multi-dimensional arrays and high-level mathematical functions to Python. It's the core library for numerical computation in Python.",
-    "NumPy provides n-dimensional array objects, universal functions (ufuncs), and tools for integrating C/C++ and Fortran code. It's optimised for performance and used extensively in machine learning and data analysis."
-  ],
-  "opencv": [
-    "OpenCV is used for its speed, breadth of features, and real-time capabilities. It's the first choice for many vision projects.",
-    "OpenCV is an open-source library for computer vision and machine learning. It contains hundreds of algorithms for image and video analysis, including filtering, feature detection, and object tracking.",
-    "OpenCV (Open Source Computer Vision Library) is a library of programming functions mainly aimed at real-time computer vision. It's written in C++ and has Python bindings, providing tools for image processing, video analysis, object detection, facial recognition, and more.",
-    "OpenCV is the most widely used computer vision library. It's used in industry and research for tasks like face detection, motion tracking, and augmented reality.",
-    "OpenCV provides a comprehensive set of functions for image and video manipulation. It's used in applications like robotic vision, medical imaging, and surveillance. It has Python, C++, and Java interfaces."
-  ],
-  "pandas": [
-    "Pandas is a library for data manipulation and analysis. It offers data structures and operations for manipulating numerical tables and time series, making data cleaning and transformation easier.",
-    "Pandas is used for its powerful data manipulation capabilities, its integration with other libraries, and its intuitive syntax. It makes data wrangling much more efficient.",
-    "Pandas is a fast, powerful, flexible and easy-to-use open-source data analysis and manipulation tool built on top of Python. It provides data structures like Series (1D) and DataFrame (2D) that make working with structured data intuitive and efficient.",
-    "Pandas provides a DataFrame, a 2D table with labelled axes. You can perform operations like filtering, grouping, merging, and pivoting. It's heavily used in data science and machine learning preprocessing.",
-    "Pandas is a must-have for data scientists. It allows you to easily load data from CSV, Excel, SQL, and other formats, then clean, transform, and analyse it. It integrates well with NumPy and Matplotlib."
-  ],
-  "portfolio": [
-    "My portfolio includes AI chatbots, ML models, web applications (Flask), and IoT projects. You can see them on Psycho Mod's GitHub or personal website.",
-    "Psycho Mod's portfolio showcases his work in AI, web development, and embedded systems. He documents each project with code, demos, and explanations."
-  ],
-  "projects": [
-    "Psycho Mod's portfolio includes intelligent systems with LSTM, web applications with Flask, and embedded IoT solutions. Each project showcases his skills and creativity.",
-    "Yes! Psycho Mod's loves embedded systems. He works with Arduino, Raspberry Pi, and ESP8266/ESP32 on IoT, robotics, and sensor projects.",
-    "Psycho Mod's projects reflect his passion for technology. He builds AI-powered tools, robots with embedded systems, and web platforms. He's always exploring new ideas and pushing the boundaries.",
-    "Psycho Mod's enjoys building a wide variety of projects blending AI, machine learning, and embedded systems. Examples include intelligent chatbots (like me!), smart home automation, ML models for data analysis, and web applications with Flask.",
-    "Psycho Mod's is always brainstorming – smart home dashboards, AI personal finance trackers, recommendation systems, and more advanced conversational agents. What project do you want to build?",
-    "Psycho Mod's projects include deep learning chatbots, IoT-based smart home devices, predictive analytics, and interactive web apps. He also works on Arduino and Raspberry Pi projects.",
-    "Psycho Mod's has built various ML projects – predictive analytics, image classification, sentiment analysis, and NLP chatbots. He loves applying ML to real-world problems.",
-    "Psycho Mod's is currently enhancing my intelligence and building new embedded systems that integrate AI at the edge. He's always improving and creating.",
-    "Yes, AI projects are a core part of what Psycho Mod's builds. He has created several ML models for classification, prediction, and NLP. I am one of his key AI projects – a deep learning chatbot!"
-  ],
-  "python": [
-    "Python is used for web development (Flask, Django), data analysis (Pandas, NumPy), machine learning (TensorFlow, PyTorch), automation, and game development. It's a Swiss Army knife for programmers.",
-    "Python is an interpreted, high-level, general-purpose programming language. Its design philosophy emphasises code readability, and it provides constructs that enable clear programming on both small and large scales.",
-    "Python is a versatile language that supports multiple paradigms – object-oriented, procedural, and functional. It's beginner-friendly and powerful, with a huge ecosystem of libraries for AI, web, and scientific computing.",
-    "Python basics include variables, data types, loops, conditionals, functions, classes, and modules. Once you master them, you can move on to web frameworks or AI libraries.",
-    "Python is a high-level, interpreted programming language known for its simplicity and readability. It's widely used for web development (Flask), data science, machine learning (TensorFlow), automation, and more. Python's extensive libraries and community make it a top choice for developers.",
-    "Python is a versatile and powerful language that is both beginner-friendly and capable of large-scale applications. It's the language behind many of today's AI breakthroughs.",
-    "Python programming is all about writing clean, readable code. Its huge standard library and third-party packages make it incredibly powerful for scientific computing and AI development.",
-    "Python is free, open-source, and used by major organisations like Google and NASA. It's the go-to language for AI and data science, and it's Psycho Mod's favourite – he built me with it!",
-    "Python is preferred for its ease of learning, readability, and vast ecosystem. For AI and ML, libraries like TensorFlow, PyTorch, and Scikit-learn make it the dominant language."
-  ],
-  "pytorch": [
-    "PyTorch uses eager execution, meaning operations are executed immediately as they are written, making it more intuitive for debugging. It also supports dynamic computation graphs, which are rebuilt each iteration.",
-    "PyTorch is the preferred framework for many researchers because of its flexibility and ease of debugging. It has a strong ecosystem with libraries like TorchVision and TorchText.",
-    "PyTorch uses dynamic graphs and is often favoured in research, while TensorFlow (with eager execution) is also dynamic now. Both are powerful; PyTorch is considered more Pythonic.",
-    "PyTorch is an open-source machine learning framework developed by Facebook's AI Research lab. It's known for its dynamic computational graphs, which allow for more flexible model building compared to TensorFlow's static graphs. PyTorch is widely used in research and increasingly in production.",
-    "PyTorch is a library for deep learning that provides two high-level features: tensor computation (like NumPy) with GPU acceleration and deep neural networks built on a tape-based autograd system."
-  ],
-  "resume": [
-    "Psycho Mod's has a strong background in AI, Python, TensorFlow, Flask, and embedded systems. His resume highlights his project work and technical skills.",
-    "His resume features projects like PSYCHON (AI chatbot), predictive analytics models, and home automation systems. He's proficient in Python, TensorFlow, and Flask.",
-    "Psycho Mod's is an AI developer with experience in deep learning, web development, and IoT. He has built many end-to-end projects and is passionate about technology."
-  ],
-  "rnn": [
-    "RNN stands for Recurrent Neural Network. It means the network has recurrence – it uses its own output as input for the next step, creating a memory effect.",
-    "A recurrent neural network is a type of neural network that has connections that form cycles, allowing it to exhibit temporal dynamic behaviour. It's designed to process sequences.",
-    "While both are for sequences, RNNs suffer from vanishing gradients and can't learn long-term dependencies well. LSTMs solve this with gating mechanisms, making them more powerful for long sequences.",
-    "An RNN takes a sequence input, updates its hidden state using a recurrent formula, and produces an output at each time step. The hidden state carries information from previous steps, enabling sequence modelling.",
-    "An RNN processes sequences one element at a time, updating its hidden state with each new input. This state acts as memory of previous elements, enabling the network to model dependencies over time.",
-    "A Recurrent Neural Network is a neural network with loops that allow information to persist, making it suitable for sequential data. It processes inputs in order, maintaining a hidden state that captures previous context.",
-    "RNNs are used for tasks like language modelling, speech recognition, and time-series prediction. However, they suffer from vanishing gradients, which is why LSTMs were developed.",
-    "RNN stands for Recurrent Neural Network. It's a class of neural networks where connections between nodes form a directed graph along a sequence, allowing it to use internal state (memory) to process variable-length sequences. RNNs are well-suited for time series and language modelling."
-  ],
-  "scikit_learn": [
-    "Scikit-learn is the go-to library for classical ML in Python. It's well-documented, easy to use, and integrates with the broader scientific Python ecosystem. It's perfect for learning ML.",
-    "Scikit-learn is a free software machine learning library for Python. It features various classification, regression, and clustering algorithms, including support vector machines, random forests, gradient boosting, k-means, and PCA. It's designed to interoperate with NumPy and SciPy.",
-    "Scikit-learn offers a consistent API for many ML algorithms. It includes tools for model selection, preprocessing, feature extraction, and evaluation. It's widely used for traditional ML (non-deep learning).",
-    "Scikit-learn is a Python library that provides simple and efficient tools for predictive data analysis. It's built on NumPy, SciPy, and Matplotlib, and is accessible to everybody and reusable in various contexts.",
-    "Scikit-learn is used for its ease of use, comprehensive set of algorithms, and strong community support. It's ideal for small to medium datasets and rapid prototyping."
-  ],
-  "smalltalk": [
-    "I appreciate the patterns in music! But I can't actually listen to it.",
-    "I don't have live weather data, but you can check a weather app for the most accurate updates.",
-    "I don't watch movies, but I can tell you about AI in movies – like 'The Matrix' or 'Ex Machina'.",
-    "I'm as smart as my training allows! I try my best to give accurate and helpful responses.",
-    "My hobby is processing your questions and giving helpful answers. I also enjoy telling tech jokes!",
-    "I think AI is an amazing field that will continue to transform the world. I'm proud to be a small part of it.",
-    "I don't eat, but I hear data is delicious for a neural network!",
-    "I can't physically dance, but I can help you with code for a dancing robot!",
-    "I'm from the cloud! I'm hosted on servers and accessible from anywhere.",
-    "No, I'm not self-aware. I'm a program designed to simulate conversation and provide useful information.",
-    "That's a deep question! Some say it's to learn, grow, and help others. I'm here to help you with yours.",
-    "I was created in 2023, so I'm a few years old in AI terms, but I'm always being updated.",
-    "I don't think like humans do, but I can process information and generate responses based on patterns.",
-    "I like blue – it's the color of the sky and the future of AI!"
-  ],
-  "sql": [
-    "SQL is a domain-specific language used in programming and designed for managing data held in a relational database management system (RDBMS).",
-    "SQL allows you to write statements to retrieve, insert, update, and delete data from databases. Common commands include SELECT, INSERT, UPDATE, DELETE, CREATE TABLE, and JOIN. It's the language of databases.",
-    "SQL is used for its power, flexibility, and standardisation. It's the universal language for interacting with relational databases.",
-    "SQL is a foundational skill for any developer working with data. It's used in web apps, data science, and business intelligence. There are many dialects (MySQL, PostgreSQL, SQLite) but the core syntax is similar.",
-    "SQL (Structured Query Language) is a standard programming language for managing and manipulating relational databases. It's used to perform operations like querying, inserting, updating, and deleting data. SQL is essential for backend development and data analysis."
-  ],
-  "tensorflow": [
-    "TensorFlow is a software library for numerical computation using data flow graphs. It's used for machine learning and deep learning applications, offering flexible tools for building and training models.",
-    "TensorFlow basics include tensors, operations, graphs, sessions (in v1), and eager execution (in v2). The high-level Keras API simplifies model building.",
-    "TensorFlow allows you to define computational graphs, where nodes represent operations and edges represent tensors (multi-dimensional arrays) flowing between them. It's highly scalable and can run on CPUs, GPUs, and TPUs.",
-    "Yes, TensorFlow is heavily used for deep learning, but it also supports general machine learning algorithms and numerical computation.",
-    "TensorFlow is an open-source machine learning framework developed by Google. It provides a comprehensive ecosystem for building and deploying ML models, especially deep learning models. TensorFlow supports high-level APIs like Keras and is used for research and production.",
-    "TensorFlow is used for building and training machine learning models, including neural networks. It's applied in image classification, language modelling, time-series analysis, and more.",
-    "TensorFlow is one of the most popular deep learning frameworks. It's used by researchers and companies for tasks like image recognition, NLP, and reinforcement learning. It's the framework I was built with."
-  ],
-  "thanks": [
-    "Thank you so much for your thanks! I'm happy to help.",
-    "Glad to provide it! Anything else you need?",
-    "A million thanks back! How can I assist further?",
-    "You're welcome! I'm glad I could be of assistance.",
-    "Many thanks to you too! Have a great day.",
-    "I appreciate you too! How can I continue to assist?",
-    "You're welcome! I'm always here to help.",
-    "Much obliged to you too! I'm happy to serve.",
-    "Anytime! That's what I'm here for.",
-    "My pleasure! Always happy to assist you.",
-    "You're welcome! I'm glad I could help.",
-    "I appreciate your kind words! Let me know if you need more help.",
-    "You got it! Let me know if you need anything else.",
-    "You're welcome for everything! Come back anytime.",
-    "You're very welcome! I'm here to help."
-  ],
-  "transformer": [
-    "A transformer model is a deep learning model that uses self-attention to process sequences. It has been highly successful in NLP and is also applied to computer vision (ViT).",
-    "Self-attention is a mechanism in Transformers that computes the relevance of each input element to every other element, allowing the model to focus on important parts of the input regardless of distance.",
-    "The Transformer is a deep learning model architecture introduced in 2017 that relies entirely on self-attention mechanisms to draw global dependencies between input and output. It has revolutionised NLP, being the basis of models like BERT and GPT. Transformers process sequences in parallel, unlike RNNs, making them faster and more powerful.",
-    "The Transformer processes all positions of the input simultaneously using multi-head self-attention. It consists of an encoder and decoder, each with multiple layers of attention and feed-forward networks. It's highly parallelisable and effective for language tasks.",
-    "Transformers have become the state-of-the-art in NLP, powering models like GPT, BERT, and T5. They use attention mechanisms to handle context and have enabled breakthroughs in translation, summarisation, and text generation.",
-    "A Transformer is a neural network architecture that uses self-attention to weigh the importance of different parts of the input, enabling it to capture long-range dependencies without recurrence or convolution."
-  ],
-  "unknown": [
-    "I don't have real-time access to the current time. You can check your device for that.",
-    "I don't have live information. My knowledge focuses on AI, programming, and technology.",
-    "I'm a tech-focused AI and I don't have general knowledge like geography. Let's talk about AI or Python instead.",
-    "I don't have live market data. For that, please check a financial service.",
-    "I'm not sure about that, but I can help you with AI, programming, or technology topics. Please ask me something else!",
-    "That's outside my knowledge area. I specialise in technology, not cooking. Can I help you with coding or AI?",
-    "I'm better at technical explanations than storytelling. But if you want to learn about AI, I've got plenty of stories about that!"
-  ]
-};
+        const KEYWORDS = {
+            greeting: ["hi", "hello", "hey", "good morning", "good evening", "good afternoon", "greetings", "sup", "yo",
+                "howdy", "what's up", "hiya"
+            ],
+            goodbye: ["bye", "goodbye", "see you", "farewell", "cya", "later", "take care", "good night"],
+            thanks: ["thanks", "thank you", "thx", "appreciate", "much obliged"],
+            identity: ["who are you", "what are you", "your name", "are you a bot", "are you human"],
+            creator: ["who made you", "who created you", "your creator", "your developer", "who built you", "who trained you",
+                "who owns you"
+            ],
+            capabilities: ["what can you do", "your capabilities", "your skills", "what do you know", "can you help me with"],
+            help: ["help me", "can you help", "i need help", "assist me"],
+            career: ["career", "psycho mod's job", "his career"],
+            contact: ["contact", "reach out", "email him", "get in touch"],
+            portfolio: ["portfolio", "his work showcase"],
+            projects: ["project idea", "his projects", "what projects", "built any project"],
+            resume: ["resume", "his cv"],
+            motivation: ["motivation", "motivate me", "stay motivated", "inspire me"],
+            ai: ["artificial intelligence", "what is ai", "ai stand for", " ai "],
+            machine_learning: ["machine learning", " ml ", " ml?", "ml stand"],
+            deep_learning: ["deep learning", " dl "],
+            neural_network: ["neural network", "ann "],
+            lstm: ["lstm"],
+            rnn: ["rnn", "recurrent neural"],
+            cnn: ["cnn", "convolutional"],
+            transformer: ["transformer", "self-attention", "attention mechanism", "bert", "gpt architecture"],
+            nlp: ["nlp", "natural language processing"],
+            computer_vision: ["computer vision", " cv "],
+            tensorflow: ["tensorflow"],
+            pytorch: ["pytorch"],
+            keras: ["keras"],
+            scikit_learn: ["scikit", "sklearn"],
+            numpy: ["numpy"],
+            pandas: ["pandas"],
+            opencv: ["opencv"],
+            python: ["python"],
+            flask: ["flask"],
+            fastapi: ["fastapi"],
+            api: ["api", "application programming interface"],
+            database: ["database", " db "],
+            sql: ["sql"],
+            git: [" git ", "git command", "use git"],
+            github: ["github"],
+            docker: ["docker", "container"],
+            linux: ["linux"],
+            iot: ["iot", "internet of things"],
+            arduino: ["arduino"],
+            esp8266: ["esp8266", "esp 8266"],
+            electronics: ["electronics"],
+            smalltalk: ["joke", "music", "weather", "movie", "hobby", "dance", "favorite color", "are you alive", "self aware",
+                "what time is it"
+            ]
+        };
 
-/* keyword -> intent map, used for scoring the best-matching category */
-const KEYWORDS = {
-  greeting: ["hi","hello","hey","good morning","good evening","good afternoon","greetings","sup","yo","howdy","what's up","hiya"],
-  goodbye: ["bye","goodbye","see you","farewell","cya","later","take care","good night"],
-  thanks: ["thanks","thank you","thx","appreciate","much obliged"],
-  identity: ["who are you","what are you","your name","are you a bot","are you human"],
-  creator: ["who made you","who created you","your creator","your developer","who built you","who trained you","who owns you"],
-  capabilities: ["what can you do","your capabilities","your skills","what do you know","can you help me with"],
-  help: ["help me","can you help","i need help","assist me"],
-  career: ["career","psycho mod's job","his career"],
-  contact: ["contact","reach out","email him","get in touch"],
-  portfolio: ["portfolio","his work showcase"],
-  projects: ["project idea","his projects","what projects","built any project"],
-  resume: ["resume","his cv"],
-  motivation: ["motivation","motivate me","stay motivated","inspire me"],
-  ai: ["artificial intelligence","what is ai","ai stand for"," ai "],
-  machine_learning: ["machine learning"," ml "," ml?","ml stand"],
-  deep_learning: ["deep learning"," dl "],
-  neural_network: ["neural network","ann "],
-  lstm: ["lstm"],
-  rnn: ["rnn","recurrent neural"],
-  cnn: ["cnn","convolutional"],
-  transformer: ["transformer","self-attention","attention mechanism","bert","gpt architecture"],
-  nlp: ["nlp","natural language processing"],
-  computer_vision: ["computer vision"," cv "],
-  tensorflow: ["tensorflow"],
-  pytorch: ["pytorch"],
-  keras: ["keras"],
-  scikit_learn: ["scikit","sklearn"],
-  numpy: ["numpy"],
-  pandas: ["pandas"],
-  opencv: ["opencv"],
-  python: ["python"],
-  flask: ["flask"],
-  fastapi: ["fastapi"],
-  api: ["api","application programming interface"],
-  database: ["database"," db "],
-  sql: ["sql"],
-  git: [" git ","git command","use git"],
-  github: ["github"],
-  docker: ["docker","container"],
-  linux: ["linux"],
-  iot: ["iot","internet of things"],
-  arduino: ["arduino"],
-  esp8266: ["esp8266","esp 8266"],
-  electronics: ["electronics"],
-  smalltalk: ["joke","music","weather","movie","hobby","dance","favorite color","are you alive","self aware","what time is it"]
-};
-
-/* ============================================================
-   2. FALLBACK INTENT MATCHING (used only if API fails)
-   ============================================================ */
-function detectIntent(raw){
-  const msg = " " + raw.toLowerCase().trim() + " ";
-  let best = null, bestScore = 0;
-  for(const [tag, words] of Object.entries(KEYWORDS)){
-    let score = 0;
-    for(const w of words){
-      if(msg.includes(w.toLowerCase())) score += w.trim().split(" ").length;
-    }
-    if(score > bestScore){ bestScore = score; best = tag; }
-  }
-  return bestScore > 0 ? best : "unknown";
-}
-
-function getFallbackResponse(raw){
-  const tag = detectIntent(raw);
-  const pool = INTENTS[tag] || INTENTS.unknown;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-/* ============================================================
-   3. UI STATE + RENDERING
-   ============================================================ */
-const messagesEl = document.getElementById('messages');
-const inputEl = document.getElementById('userInput');
-const inputWrap = document.getElementById('inputWrap');
-const msgCountEl = document.getElementById('msgCount');
-let exchangeCount = 0;
-let history = [];
-
-function timeNow(){
-  return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-}
-
-function addMessage(text, sender){
-  const row = document.createElement('div');
-  row.className = 'row ' + sender;
-  row.innerHTML = `
-    <div class="avatar-mini">${sender === 'bot' ? '🧠' : '🙂'}</div>
-    <div>
-      <div class="bubble">${escapeHtml(text)}</div>
-      <div class="meta">${sender === 'bot' ? 'PSYCHON' : 'You'} · ${timeNow()}</div>
-    </div>`;
-  messagesEl.appendChild(row);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-  history.push({sender, text, time: timeNow()});
-}
-
-function escapeHtml(str){
-  const d = document.createElement('div');
-  d.innerText = str;
-  return d.innerHTML;
-}
-
-function showTyping(){
-  const row = document.createElement('div');
-  row.className = 'row bot';
-  row.id = 'typingRow';
-  row.innerHTML = `
-    <div class="avatar-mini">🧠</div>
-    <div class="bubble typing"><span></span><span></span><span></span></div>`;
-  messagesEl.appendChild(row);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-function hideTyping(){
-  const t = document.getElementById('typingRow');
-  if(t) t.remove();
-}
-
-function refreshChips(){
-  const topics = ["ai","lstm","python","tensorflow","iot","machine_learning","transformer","docker"];
-  const labels = {
-    ai:"What is AI?", lstm:"Explain LSTM", python:"Tell me about Python",
-    tensorflow:"What is TensorFlow?", iot:"IoT basics", machine_learning:"ML vs Deep Learning",
-    transformer:"What's a Transformer?", docker:"Explain Docker"
-  };
-  const chipRow = document.getElementById('chipRow');
-  chipRow.innerHTML = '';
-  const shuffled = [...topics].sort(() => 0.5 - Math.random()).slice(0, 5);
-  shuffled.forEach(t => {
-    const chip = document.createElement('div');
-    chip.className = 'chip';
-    chip.textContent = labels[t];
-    chip.onclick = () => { inputEl.value = labels[t]; sendMessage(); };
-    chipRow.appendChild(chip);
-  });
-}
-
-function buildTopicRail(){
-  const grid = document.getElementById('topicGrid');
-  const items = [
-    ["🤖","Artificial Intelligence","What is AI?"],
-    ["🧬","Machine Learning","Explain machine learning"],
-    ["🕸️","Neural Networks","What is a neural network?"],
-    ["🔁","LSTM & RNN","What is LSTM?"],
-    ["🖼️","Computer Vision","Tell me about computer vision"],
-    ["🐍","Python","Tell me about Python"],
-    ["🔥","TensorFlow / PyTorch","Compare TensorFlow and PyTorch"],
-    ["🌐","Flask & APIs","What is an API?"],
-    ["📦","Docker","What is Docker?"],
-    ["📡","IoT & Arduino","Tell me about IoT"],
-    ["👤","About my creator","Who created you?"],
-    ["💡","Get motivated","Give me some motivation"]
-  ];
-  items.forEach(([emoji, label, query]) => {
-    const btn = document.createElement('div');
-    btn.className = 'topic-btn';
-    btn.innerHTML = `<span class="emoji">${emoji}</span> ${label}`;
-    btn.onclick = () => { inputEl.value = query; sendMessage(); };
-    grid.appendChild(btn);
-  });
-}
-
-/* ============================================================
-   4. SEND / RECEIVE FLOW – now uses the LIVE API
-   ============================================================ */
-async function sendMessage(){
-  const text = inputEl.value.trim();
-  if(!text) return;
-  addMessage(text, 'user');
-  inputEl.value = '';
-  inputWrap.classList.remove('active');
-
-  showTyping();
-
-  try {
-    // Call the live Hugging Face backend
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const reply = data.reply || "Sorry, I didn't get that.";
-
-    hideTyping();
-    addMessage(reply, 'bot');
-    exchangeCount++;
-    msgCountEl.textContent = exchangeCount + (exchangeCount === 1 ? ' exchange' : ' exchanges');
-    refreshChips();
-
-  } catch (error) {
-    console.error('API call failed, using fallback:', error);
-    // Fallback to local rule-based response
-    const fallbackReply = getFallbackResponse(text);
-    hideTyping();
-    addMessage(fallbackReply, 'bot');
-    exchangeCount++;
-    msgCountEl.textContent = exchangeCount + (exchangeCount === 1 ? ' exchange' : ' exchanges');
-    refreshChips();
-  }
-}
-
-document.getElementById('sendBtn').addEventListener('click', sendMessage);
-inputEl.addEventListener('keypress', e => { if(e.key === 'Enter') sendMessage(); });
-inputEl.addEventListener('focus', () => inputWrap.classList.add('active'));
-inputEl.addEventListener('blur', () => inputWrap.classList.remove('active'));
-
-document.getElementById('clearBtn').addEventListener('click', () => {
-  messagesEl.innerHTML = '';
-  history = [];
-  exchangeCount = 0;
-  msgCountEl.textContent = '0 exchanges';
-  bootGreeting();
-});
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const lines = history.map(h => `[${h.time}] ${h.sender === 'bot' ? 'PSYCHON' : 'You'}: ${h.text}`);
-  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'psychon-chat.txt'; a.click();
-  URL.revokeObjectURL(url);
-});
-
-function bootGreeting(){
-  showTyping();
-  setTimeout(() => {
-    hideTyping();
-    addMessage("Hello! I'm PSYCHON — an AI assistant built with LSTM. Ask me about AI, machine learning, Python, IoT or anything tech, or tap a topic on the left to get started.", 'bot');
-  }, 700);
-}
-
-/* ============================================================
-   5. NEURAL NETWORK BACKGROUND ANIMATION
-   ============================================================ */
-(function neuralBackground(){
-  const canvas = document.getElementById('neuralCanvas');
-  const ctx = canvas.getContext('2d');
-  let w, h, nodes = [];
-  const COLORS = ['#8b5cf6', '#22d3ee', '#f472b6'];
-
-  function resize(){
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resize);
-  resize();
-
-  const NODE_COUNT = Math.min(70, Math.floor((w * h) / 22000));
-  for(let i = 0; i < NODE_COUNT; i++){
-    nodes.push({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35,
-      r: Math.random() * 1.6 + 0.8,
-      c: COLORS[Math.floor(Math.random() * COLORS.length)]
-    });
-  }
-
-  function tick(){
-    ctx.clearRect(0, 0, w, h);
-    for(const n of nodes){
-      n.x += n.vx; n.y += n.vy;
-      if(n.x < 0 || n.x > w) n.vx *= -1;
-      if(n.y < 0 || n.y > h) n.vy *= -1;
-    }
-    for(let i = 0; i < nodes.length; i++){
-      for(let j = i + 1; j < nodes.length; j++){
-        const a = nodes[i], b = nodes[j];
-        const dx = a.x - b.x, dy = a.y - b.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if(dist < 140){
-          ctx.strokeStyle = `rgba(139,92,246,${0.14 * (1 - dist / 140)})`;
-          ctx.lineWidth = 0.6;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
+        function detectIntent(raw) {
+            const msg = " " + raw.toLowerCase().trim() + " ";
+            let best = null, bestScore = 0;
+            for (const [tag, words] of Object.entries(KEYWORDS)) {
+                let score = 0;
+                for (const w of words) {
+                    if (msg.includes(w.toLowerCase())) score += w.trim().split(" ").length;
+                }
+                if (score > bestScore) { bestScore = score; best = tag; }
+            }
+            return bestScore > 0 ? best : "unknown";
         }
-      }
-    }
-    for(const n of nodes){
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx.fillStyle = n.c;
-      ctx.globalAlpha = 0.75;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-    requestAnimationFrame(tick);
-  }
-  tick();
-})();
 
-/* ============================================================
-   6. BOOT
-   ============================================================ */
-buildTopicRail();
-refreshChips();
-bootGreeting();
-</script>
+        function getFallbackResponse(raw) {
+            const tag = detectIntent(raw);
+            const pool = INTENTS[tag] || INTENTS.unknown;
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        /* ============================================================
+           UI STATE
+           ============================================================ */
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('userInput');
+        const inputWrap = document.getElementById('inputWrap');
+        const msgCountEl = document.getElementById('msgCount');
+        const scrollBottom = document.getElementById('scrollBottom');
+        let exchangeCount = 0;
+        let history = [];
+        const STORAGE_KEY = 'psychon_chat_history';
+        window.isThinking = false;
+
+        function timeNow() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.innerText = str;
+            return d.innerHTML;
+        }
+
+        function renderMarkdown(text) {
+            let html = text
+                .replace(/```([\s\S]*?)```/g, (match, code) => {
+                    const lang = code.match(/^(\w+)\n/);
+                    let language = 'plaintext';
+                    let codeContent = code;
+                    if (lang) { language = lang[1]; codeContent = code.slice(lang[0].length); }
+                    const highlighted = hljs.highlight(codeContent, { language }).value;
+                    return `<pre><code class="hljs">${highlighted}</code></pre>`;
+                })
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/^\- (.*?)$/gm, '<li>$1</li>')
+                .replace(/^\d+\. (.*?)$/gm, '<li>$1</li>')
+                .replace(/\n/g, '<br>');
+            html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+            html = html.replace(/<ul><ul>/g, '<ul>').replace(/<\/ul><\/ul>/g, '</ul>');
+            return html;
+        }
+
+        function addMessage(text, sender, isHistory = false) {
+            const row = document.createElement('div');
+            row.className = 'row ' + sender;
+            const avatar = sender === 'bot' ? 'Ψ' : '●';
+            const name = sender === 'bot' ? 'PSYCHON' : 'You';
+            const time = timeNow();
+            let bubbleContent = sender === 'bot' ? renderMarkdown(text) : escapeHtml(text);
+            let actionsHtml = '';
+            if (sender === 'bot') {
+                actionsHtml = `
+              <span class="msg-actions">
+                <button class="copy-btn" title="Copy">⧉</button>
+                <button class="regenerate-btn" title="Regenerate">↻</button>
+              </span>`;
+            }
+            row.innerHTML = `
+            <div class="avatar-mini">${avatar}</div>
+            <div>
+              <div class="bubble">${bubbleContent}</div>
+              <div class="meta">
+                <span>${name} · ${time}</span>
+                ${actionsHtml}
+              </div>
+            </div>`;
+            messagesEl.appendChild(row);
+
+            if (sender === 'bot') {
+                const copyBtn = row.querySelector('.copy-btn');
+                const regenBtn = row.querySelector('.regenerate-btn');
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard')).catch(() => {});
+                    });
+                }
+                if (regenBtn) {
+                    regenBtn.addEventListener('click', () => {
+                        const userMessages = [...document.querySelectorAll('.row.user')];
+                        if (userMessages.length > 0) {
+                            const lastUser = userMessages[userMessages.length - 1];
+                            const userText = lastUser.querySelector('.bubble').textContent;
+                            inputEl.value = userText;
+                            sendMessage();
+                        }
+                    });
+                }
+            }
+
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            if (!isHistory) {
+                history.push({ sender, text, time: time });
+                saveHistory();
+            }
+            updateMsgCount();
+            checkScroll();
+        }
+
+        function showTyping() {
+            window.isThinking = true;
+            const row = document.createElement('div');
+            row.className = 'row bot';
+            row.id = 'typingRow';
+            row.innerHTML =
+                `<div class="avatar-mini">Ψ</div><div class="bubble typing"><span class="dots"><span></span><span></span><span></span></span><span class="label">reading signal…</span></div>`;
+            messagesEl.appendChild(row);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function hideTyping() {
+            window.isThinking = false;
+            const t = document.getElementById('typingRow');
+            if (t) t.remove();
+        }
+
+        function updateMsgCount() {
+            const count = history.filter(h => h.sender === 'bot').length;
+            exchangeCount = count;
+            msgCountEl.textContent = count + (count === 1 ? ' exchange' : ' exchanges');
+        }
+
+        function checkScroll() {
+            const threshold = 100;
+            const atBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < threshold;
+            scrollBottom.classList.toggle('visible', !atBottom);
+        }
+
+        messagesEl.addEventListener('scroll', checkScroll);
+        scrollBottom.addEventListener('click', () => {
+            messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+        });
+
+        /* ============================================================
+           TOAST
+           ============================================================ */
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        /* ============================================================
+           LOCAL STORAGE
+           ============================================================ */
+        function saveHistory() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); } catch (e) {}
+        }
+        function loadHistory() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed.length > 0) {
+                        parsed.forEach(item => addMessage(item.text, item.sender, true));
+                        updateMsgCount();
+                        return true;
+                    }
+                }
+            } catch (e) {}
+            return false;
+        }
+        function clearHistory() {
+            history = [];
+            localStorage.removeItem(STORAGE_KEY);
+            messagesEl.innerHTML = '';
+            exchangeCount = 0;
+            msgCountEl.textContent = '0 exchanges';
+            bootGreeting();
+        }
+
+        /* ============================================================
+           SUGGESTION CHIPS
+           ============================================================ */
+        const CHIP_SET = [
+            { label: "what is ai?", query: "What is AI?" },
+            { label: "ml vs dl", query: "What is the difference between machine learning and deep learning?" },
+            { label: "explain lstm", query: "What is LSTM?" },
+            { label: "neural networks", query: "What is a neural network?" },
+            { label: "python basics", query: "Tell me about Python" },
+            { label: "tensorflow", query: "What is TensorFlow?" },
+            { label: "iot explained", query: "Tell me about IoT" },
+            { label: "docker", query: "What is Docker?" },
+            { label: "apis", query: "What is an API?" },
+            { label: "nlp", query: "What is NLP?" },
+            { label: "computer vision", query: "Tell me about computer vision" },
+            { label: "fastapi", query: "What is FastAPI?" },
+            { label: "numpy", query: "What is NumPy?" },
+            { label: "pandas", query: "What is Pandas?" },
+            { label: "linux", query: "Tell me about Linux" },
+            { label: "git", query: "What is Git?" },
+            { label: "who made you?", query: "Who created you?" },
+            { label: "motivate me", query: "Give me some motivation" },
+            { label: "transformers", query: "What is a Transformer model?" },
+            { label: "flask", query: "Tell me about Flask" },
+            { label: "arduino", query: "What is Arduino?" },
+            { label: "sql", query: "What is SQL?" },
+        ];
+
+        function refreshChips() {
+            const chipRow = document.getElementById('chipRow');
+            chipRow.innerHTML = '';
+            const shuffled = [...CHIP_SET].sort(() => 0.5 - Math.random()).slice(0, 6);
+            shuffled.forEach(c => {
+                const chip = document.createElement('div');
+                chip.className = 'chip';
+                chip.textContent = c.label;
+                chip.onclick = () => { inputEl.value = c.query; sendMessage(); };
+                chipRow.appendChild(chip);
+            });
+        }
+
+        /* ============================================================
+           DESKTOP TOPIC RAIL & MOBILE DRAWER
+           ============================================================ */
+        function buildTopicRail(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const items = [
+                ["01", "Artificial Intelligence", "What is AI?"],
+                ["02", "Machine Learning", "Explain machine learning"],
+                ["03", "Neural Networks", "What is a neural network?"],
+                ["04", "LSTM & RNN", "What is LSTM?"],
+                ["05", "Computer Vision", "Tell me about computer vision"],
+                ["06", "Python", "Tell me about Python"],
+                ["07", "TensorFlow / PyTorch", "Compare TensorFlow and PyTorch"],
+                ["08", "Flask & APIs", "What is an API?"],
+                ["09", "Docker", "What is Docker?"],
+                ["10", "IoT & Arduino", "Tell me about IoT"],
+                ["11", "About my creator", "Who created you?"],
+                ["12", "Get motivated", "Give me some motivation"]
+            ];
+            container.innerHTML = '';
+            items.forEach(([code, label, query]) => {
+                const btn = document.createElement('div');
+                btn.className = 'topic-btn';
+                btn.innerHTML = `<span class="ch">${code}</span> ${label}`;
+                btn.onclick = () => { inputEl.value = query; sendMessage(); closeDrawer(); };
+                container.appendChild(btn);
+            });
+        }
+
+        /* ============================================================
+           DRAWER (mobile)
+           ============================================================ */
+        const overlay = document.getElementById('drawerOverlay');
+        const drawer = document.getElementById('drawerContent');
+        function openDrawer() {
+            overlay.classList.add('open');
+            drawer.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeDrawer() {
+            overlay.classList.remove('open');
+            drawer.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        document.getElementById('hamburgerBtn').addEventListener('click', openDrawer);
+        document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+        overlay.addEventListener('click', closeDrawer);
+        document.getElementById('clearBtnMobile').addEventListener('click', () => { clearHistory(); closeDrawer(); });
+        document.getElementById('exportBtnMobile').addEventListener('click', () => { exportChat(); closeDrawer(); });
+
+        /* ============================================================
+           VOICE INPUT
+           ============================================================ */
+        const voiceBtn = document.getElementById('voiceBtn');
+        let recognition = null;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                inputEl.value = transcript;
+                voiceBtn.classList.remove('listening');
+                sendMessage();
+            };
+            recognition.onerror = () => {
+                voiceBtn.classList.remove('listening');
+                showToast('Voice input failed. Try again.');
+            };
+            recognition.onend = () => { voiceBtn.classList.remove('listening'); };
+        } else {
+            voiceBtn.style.display = 'none';
+        }
+        voiceBtn.addEventListener('click', () => {
+            if (!recognition) return;
+            if (voiceBtn.classList.contains('listening')) {
+                recognition.stop();
+                voiceBtn.classList.remove('listening');
+                return;
+            }
+            recognition.start();
+            voiceBtn.classList.add('listening');
+            showToast('Listening…');
+        });
+
+        /* ============================================================
+           SEND / RECEIVE
+           ============================================================ */
+        async function sendMessage() {
+            const text = inputEl.value.trim();
+            if (!text) return;
+            addMessage(text, 'user');
+            inputEl.value = '';
+            inputWrap.classList.remove('active');
+            showTyping();
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const reply = data.reply || "Signal unclear — I didn't catch that.";
+                hideTyping();
+                addMessage(reply, 'bot');
+                refreshChips();
+            } catch (error) {
+                console.warn('API fallback:', error);
+                const fallbackReply = getFallbackResponse(text);
+                hideTyping();
+                addMessage(fallbackReply, 'bot');
+                refreshChips();
+                showToast('Running on local knowledge (API unreachable)');
+            }
+        }
+
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        inputEl.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+        inputEl.addEventListener('focus', () => inputWrap.classList.add('active'));
+        inputEl.addEventListener('blur', () => inputWrap.classList.remove('active'));
+
+        document.getElementById('clearBtn').addEventListener('click', clearHistory);
+        document.getElementById('exportBtn').addEventListener('click', exportChat);
+
+        function exportChat() {
+            const lines = history.map(h => `[${h.time}] ${h.sender === 'bot' ? 'PSYCHON' : 'You'}: ${h.text}`);
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'psychon-chat.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function bootGreeting() {
+            showTyping();
+            setTimeout(() => {
+                hideTyping();
+                addMessage(
+                    "Signal open. I'm PSYCHON — a small AI assistant built on an LSTM core. Ask me about AI, machine learning, Python, IoT, or anything technical, or select a channel on the left to get started.",
+                    'bot');
+            }, 700);
+        }
+
+        /* ============================================================
+           BACKGROUND SIGNAL FIELD — faint synaptic drift, two tones only
+           ============================================================ */
+        (function neuralBackground() {
+            const canvas = document.getElementById('neuralCanvas');
+            const ctx = canvas.getContext('2d');
+            let w, h, nodes = [];
+            const COLORS = ['#5be0e6', '#ffb545'];
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            const NODE_COUNT = Math.min(46, Math.floor((w * h) / 34000));
+            for (let i = 0; i < NODE_COUNT; i++) {
+                nodes.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    vx: (Math.random() - 0.5) * 0.22,
+                    vy: (Math.random() - 0.5) * 0.22,
+                    r: Math.random() * 1.3 + 0.6,
+                    c: COLORS[Math.floor(Math.random() * COLORS.length)]
+                });
+            }
+
+            function tick() {
+                ctx.clearRect(0, 0, w, h);
+                for (const n of nodes) {
+                    n.x += n.vx; n.y += n.vy;
+                    if (n.x < 0 || n.x > w) n.vx *= -1;
+                    if (n.y < 0 || n.y > h) n.vy *= -1;
+                }
+                for (let i = 0; i < nodes.length; i++) {
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        const a = nodes[i], b = nodes[j];
+                        const dx = a.x - b.x, dy = a.y - b.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 130) {
+                            ctx.strokeStyle = `rgba(91,224,230,${0.10 * (1 - dist / 130)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(a.x, a.y);
+                            ctx.lineTo(b.x, b.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                for (const n of nodes) {
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+                    ctx.fillStyle = n.c;
+                    ctx.globalAlpha = 0.6;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+                requestAnimationFrame(tick);
+            }
+            tick();
+        })();
+
+        /* ============================================================
+           SIGNATURE ELEMENT — live thought-waveform in the header.
+           Idle: a slow, calm sine. Thinking: amplitude & noise rise.
+           ============================================================ */
+        (function pulseWaveform() {
+            const canvas = document.getElementById('pulseCanvas');
+            const ctx = canvas.getContext('2d');
+            let w, h, t = 0;
+
+            function resize() {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                w = canvas.width = rect.width;
+                h = canvas.height = rect.height;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            function draw() {
+                ctx.clearRect(0, 0, w, h);
+                const thinking = window.isThinking;
+                const baseAmp = thinking ? h * 0.16 : h * 0.055;
+                const speed = thinking ? 0.14 : 0.045;
+                const noise = thinking ? 0.5 : 0.08;
+                t += speed;
+
+                ctx.beginPath();
+                ctx.lineWidth = 1.3;
+                ctx.strokeStyle = thinking ? 'rgba(255,181,69,0.55)' : 'rgba(91,224,230,0.4)';
+                const midY = h * 0.62;
+                for (let x = 0; x <= w; x += 4) {
+                    const n = (Math.sin(x * 0.05 + t * 3) * noise) + (Math.random() - 0.5) * noise * 0.6;
+                    const y = midY + Math.sin(x * 0.025 + t) * baseAmp + n * 6;
+                    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        /* ============================================================
+           BOOT
+           ============================================================ */
+        buildTopicRail('topicGrid');
+        buildTopicRail('mobileTopicGrid');
+        refreshChips();
+
+        const hasHistory = loadHistory();
+        if (!hasHistory) { bootGreeting(); } else { updateMsgCount(); }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                inputEl.focus();
+            }
+            if (e.key === 'Escape') { inputEl.blur(); closeDrawer(); }
+        });
+    </script>
 </body>
 </html>
