@@ -355,7 +355,12 @@
 
 <script>
 /* ============================================================
-   1. KNOWLEDGE BASE  (derived from the provided intents JSON)
+   🔥 IMPORTANT: API URL – points to your live HF backend
+   ============================================================ */
+const API_URL = "https://Psychomods-psychon-backend.hf.space/chat";
+
+/* ============================================================
+   1. KNOWLEDGE BASE  (local fallback – optional)
    ============================================================ */
 const INTENTS = {
 "ai": [
@@ -879,7 +884,7 @@ const KEYWORDS = {
 };
 
 /* ============================================================
-   2. INTENT MATCHING
+   2. FALLBACK INTENT MATCHING (used only if API fails)
    ============================================================ */
 function detectIntent(raw){
   const msg = " " + raw.toLowerCase().trim() + " ";
@@ -887,14 +892,14 @@ function detectIntent(raw){
   for(const [tag, words] of Object.entries(KEYWORDS)){
     let score = 0;
     for(const w of words){
-      if(msg.includes(w.toLowerCase())) score += w.trim().split(" ").length; // longer phrase = stronger signal
+      if(msg.includes(w.toLowerCase())) score += w.trim().split(" ").length;
     }
     if(score > bestScore){ bestScore = score; best = tag; }
   }
   return bestScore > 0 ? best : "unknown";
 }
 
-function getResponse(raw){
+function getFallbackResponse(raw){
   const tag = detectIntent(raw);
   const pool = INTENTS[tag] || INTENTS.unknown;
   return pool[Math.floor(Math.random() * pool.length)];
@@ -958,7 +963,6 @@ function refreshChips(){
   };
   const chipRow = document.getElementById('chipRow');
   chipRow.innerHTML = '';
-  // shuffle a subset each time for variety
   const shuffled = [...topics].sort(() => 0.5 - Math.random()).slice(0, 5);
   shuffled.forEach(t => {
     const chip = document.createElement('div');
@@ -995,9 +999,9 @@ function buildTopicRail(){
 }
 
 /* ============================================================
-   4. SEND / RECEIVE FLOW
+   4. SEND / RECEIVE FLOW – now uses the LIVE API
    ============================================================ */
-function sendMessage(){
+async function sendMessage(){
   const text = inputEl.value.trim();
   if(!text) return;
   addMessage(text, 'user');
@@ -1005,15 +1009,38 @@ function sendMessage(){
   inputWrap.classList.remove('active');
 
   showTyping();
-  const delay = 500 + Math.random() * 650;
-  setTimeout(() => {
+
+  try {
+    // Call the live Hugging Face backend
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = data.reply || "Sorry, I didn't get that.";
+
     hideTyping();
-    const reply = getResponse(text);
     addMessage(reply, 'bot');
     exchangeCount++;
     msgCountEl.textContent = exchangeCount + (exchangeCount === 1 ? ' exchange' : ' exchanges');
     refreshChips();
-  }, delay);
+
+  } catch (error) {
+    console.error('API call failed, using fallback:', error);
+    // Fallback to local rule-based response
+    const fallbackReply = getFallbackResponse(text);
+    hideTyping();
+    addMessage(fallbackReply, 'bot');
+    exchangeCount++;
+    msgCountEl.textContent = exchangeCount + (exchangeCount === 1 ? ' exchange' : ' exchanges');
+    refreshChips();
+  }
 }
 
 document.getElementById('sendBtn').addEventListener('click', sendMessage);
